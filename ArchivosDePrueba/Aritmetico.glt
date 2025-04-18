@@ -1,0 +1,15 @@
+
+// Suma Enteros
+fmt.Println(10+2)
+
+// Resta Enteros
+fmt.Println(10-2)
+
+// Multiplicacion Enteros
+fmt.Println(10*2)
+
+// Division Enteros
+fmt.Println(10/2)
+
+// Modulos
+fmt.Println(10%2)

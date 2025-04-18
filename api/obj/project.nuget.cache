@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "dgSpecHash": "t0W2O77qy+k=",
+  "success": true,
+  "projectFilePath": "/media/josue/Elements/bato/p/OLC2_Proyecto2_202202481/api/api.csproj",
+  "expectedPackageFiles": [
+    "/home/josue/.nuget/packages/antlr4.runtime.standard/4.13.1/antlr4.runtime.standard.4.13.1.nupkg.sha512",
+    "/home/josue/.nuget/packages/microsoft.aspnetcore.openapi/9.0.1/microsoft.aspnetcore.openapi.9.0.1.nupkg.sha512",
+    "/home/josue/.nuget/packages/microsoft.openapi/1.6.17/microsoft.openapi.1.6.17.nupkg.sha512"
+  ],
+  "logs": []
+}

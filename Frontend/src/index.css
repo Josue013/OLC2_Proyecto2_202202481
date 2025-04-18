@@ -1,0 +1,37 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f4f4f4;
+}
+
+button {
+  margin-top: 10px;
+  padding: 10px 20px;
+  border: none;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+.output {
+  padding: 10px;
+  background-color: #282a36;
+  white-space: pre-wrap;
+  color: white;
+}
+
+.editor-output-container {
+  display: flex;
+  justify-content: center;
+  gap: 5px; /* Espacio entre el editor y el output */  
+  height: 700px;
+  background-color: #222;
+}
+
+.editor-output-container > * {
+  flex: 1;
+  max-width: 60%;
+}
