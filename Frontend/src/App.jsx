@@ -89,9 +89,21 @@ function App() {
     }
   };
 
+  // Descargar archivo
+  const downloadOutput = () => {
+    if (!output.length) return; // No descargar si no hay output
+    
+    const content = output.join('\n');
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "program.s";
+    link.click();
+  };
+
   return (
     <div className="App">
-      <Navbar runCode={runCode} cleanOutput={cleanOutput} newFile={newFile} openFile={openFile} saveFile={saveFile} />
+      <Navbar runCode={runCode} cleanOutput={cleanOutput} newFile={newFile} openFile={openFile} saveFile={saveFile} downloadOutput={downloadOutput} />
       <div className="tabs">
         {files.map((file, index) => (
           <div key={index} className={`tab ${index === activeFileIndex ? 'active' : ''}`}>

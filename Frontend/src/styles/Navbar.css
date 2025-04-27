@@ -128,6 +128,23 @@
   animation: fadeIn 0.3s ease;
 }
 
+.navbar-center .download {
+  background-color: #f1f1f1;
+  color: #333;
+  border: solid 2px #2ecc71;  /* Color verde */
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  padding: 10px 20px;
+  margin: 5px;
+}
+
+.navbar-center .download:hover {
+  background: linear-gradient(45deg, #2ecc71 0%, #27ae60 100%);
+  color: white;
+  border-color: #27ae60;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

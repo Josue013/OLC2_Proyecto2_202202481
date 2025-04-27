@@ -6,475 +6,20 @@ _start:
     adr x10, heap
 // Print statement
 // Visiting expression list
-// String constant: ==== Declaración de variables ====
-STR x10, [SP, #-8]!
-// Pushing char 61 to heap - =
-MOV w0, #61
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 61 to heap - =
-MOV w0, #61
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 61 to heap - =
-MOV w0, #61
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 61 to heap - =
-MOV w0, #61
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 32 to heap -  
-MOV w0, #32
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 68 to heap - D
-MOV w0, #68
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 101 to heap - e
-MOV w0, #101
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 99 to heap - c
-MOV w0, #99
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 108 to heap - l
-MOV w0, #108
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 97 to heap - a
-MOV w0, #97
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 114 to heap - r
-MOV w0, #114
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 97 to heap - a
-MOV w0, #97
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 99 to heap - c
-MOV w0, #99
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 105 to heap - i
-MOV w0, #105
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 243 to heap - ó
-MOV w0, #243
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 110 to heap - n
-MOV w0, #110
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 32 to heap -  
-MOV w0, #32
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 100 to heap - d
-MOV w0, #100
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 101 to heap - e
-MOV w0, #101
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 32 to heap -  
-MOV w0, #32
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 118 to heap - v
-MOV w0, #118
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 97 to heap - a
-MOV w0, #97
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 114 to heap - r
-MOV w0, #114
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 105 to heap - i
-MOV w0, #105
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 97 to heap - a
-MOV w0, #97
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 98 to heap - b
-MOV w0, #98
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 108 to heap - l
-MOV w0, #108
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 101 to heap - e
-MOV w0, #101
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 115 to heap - s
-MOV w0, #115
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 32 to heap -  
-MOV w0, #32
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 61 to heap - =
-MOV w0, #61
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 61 to heap - =
-MOV w0, #61
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 61 to heap - =
-MOV w0, #61
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 61 to heap - =
-MOV w0, #61
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 0 to heap - 
-MOV w0, #0
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Popping value to print
+// Add/Sub operation
+// Visiting left operand
+// Constant: 10
+MOV x0, #10
+STR x0, [SP, #-8]!
+// Visiting right operand
+// Constant: 2
+MOV x0, #2
+STR x0, [SP, #-8]!
+// Popping operands
+LDR x1, [SP], #8
 LDR x0, [SP], #8
-MOV X0, x0
-BL print_string
-MOV w0, #10
-STR x0, [SP, #-8]!
-MOV X0, sp
-BL print_string
-// Print statement
-// Visiting expression list
-// String constant: Declaración explícita con tipo y valor
-STR x10, [SP, #-8]!
-// Pushing char 68 to heap - D
-MOV w0, #68
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 101 to heap - e
-MOV w0, #101
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 99 to heap - c
-MOV w0, #99
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 108 to heap - l
-MOV w0, #108
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 97 to heap - a
-MOV w0, #97
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 114 to heap - r
-MOV w0, #114
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 97 to heap - a
-MOV w0, #97
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 99 to heap - c
-MOV w0, #99
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 105 to heap - i
-MOV w0, #105
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 243 to heap - ó
-MOV w0, #243
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 110 to heap - n
-MOV w0, #110
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 32 to heap -  
-MOV w0, #32
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 101 to heap - e
-MOV w0, #101
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 120 to heap - x
-MOV w0, #120
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 112 to heap - p
-MOV w0, #112
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 108 to heap - l
-MOV w0, #108
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 237 to heap - í
-MOV w0, #237
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 99 to heap - c
-MOV w0, #99
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 105 to heap - i
-MOV w0, #105
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 116 to heap - t
-MOV w0, #116
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 97 to heap - a
-MOV w0, #97
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 32 to heap -  
-MOV w0, #32
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 99 to heap - c
-MOV w0, #99
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 111 to heap - o
-MOV w0, #111
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 110 to heap - n
-MOV w0, #110
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 32 to heap -  
-MOV w0, #32
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 116 to heap - t
-MOV w0, #116
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 105 to heap - i
-MOV w0, #105
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 112 to heap - p
-MOV w0, #112
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 111 to heap - o
-MOV w0, #111
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 32 to heap -  
-MOV w0, #32
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 121 to heap - y
-MOV w0, #121
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 32 to heap -  
-MOV w0, #32
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 118 to heap - v
-MOV w0, #118
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 97 to heap - a
-MOV w0, #97
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 108 to heap - l
-MOV w0, #108
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 111 to heap - o
-MOV w0, #111
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 114 to heap - r
-MOV w0, #114
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 0 to heap - 
-MOV w0, #0
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Popping value to print
-LDR x0, [SP], #8
-MOV X0, x0
-BL print_string
-MOV w0, #10
-STR x0, [SP, #-8]!
-MOV X0, sp
-BL print_string
-// Variable declaration: entero of type int
-// Constant: 42
-MOV x0, #42
-STR x0, [SP, #-8]!
-// Variable declaration: texto of type string
-// String constant: Hola, mundo!
-STR x10, [SP, #-8]!
-// Pushing char 72 to heap - H
-MOV w0, #72
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 111 to heap - o
-MOV w0, #111
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 108 to heap - l
-MOV w0, #108
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 97 to heap - a
-MOV w0, #97
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 44 to heap - ,
-MOV w0, #44
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 32 to heap -  
-MOV w0, #32
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 109 to heap - m
-MOV w0, #109
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 117 to heap - u
-MOV w0, #117
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 110 to heap - n
-MOV w0, #110
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 100 to heap - d
-MOV w0, #100
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 111 to heap - o
-MOV w0, #111
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 33 to heap - !
-MOV w0, #33
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Pushing char 0 to heap - 
-MOV w0, #0
-STRB w0, [x10]
-MOV x0, #1
-ADD x10, x10, x0
-// Print statement
-// Visiting expression list
-MOV x0, #8
-ADD x0, sp, x0
-LDR x0, [x0, #0]
+ADD x0, x0, x1
+// Pushing result
 STR x0, [SP, #-8]!
 // Popping value to print
 LDR x0, [SP], #8
@@ -482,18 +27,91 @@ MOV X0, x0
 BL print_integer
 // Print statement
 // Visiting expression list
-MOV x0, #0
-ADD x0, sp, x0
-LDR x0, [x0, #0]
+// Add/Sub operation
+// Visiting left operand
+// Constant: 10
+MOV x0, #10
+STR x0, [SP, #-8]!
+// Visiting right operand
+// Constant: 2
+MOV x0, #2
+STR x0, [SP, #-8]!
+// Popping operands
+LDR x1, [SP], #8
+LDR x0, [SP], #8
+SUB x0, x0, x1
+// Pushing result
 STR x0, [SP, #-8]!
 // Popping value to print
 LDR x0, [SP], #8
 MOV X0, x0
-BL print_string
-MOV w0, #10
+BL print_integer
+// Print statement
+// Visiting expression list
+// Mul/Div operation
+// Visiting left operand
+// Constant: 10
+MOV x0, #10
 STR x0, [SP, #-8]!
-MOV X0, sp
-BL print_string
+// Visiting right operand
+// Constant: 2
+MOV x0, #2
+STR x0, [SP, #-8]!
+// Popping operands
+LDR x1, [SP], #8
+LDR x0, [SP], #8
+MUL x0, x0, x1
+// Pushing result
+STR x0, [SP, #-8]!
+// Popping value to print
+LDR x0, [SP], #8
+MOV X0, x0
+BL print_integer
+// Print statement
+// Visiting expression list
+// Mul/Div operation
+// Visiting left operand
+// Constant: 10
+MOV x0, #10
+STR x0, [SP, #-8]!
+// Visiting right operand
+// Constant: 2
+MOV x0, #2
+STR x0, [SP, #-8]!
+// Popping operands
+LDR x1, [SP], #8
+LDR x0, [SP], #8
+SDIV x0, x0, x1
+// Pushing result
+STR x0, [SP, #-8]!
+// Popping value to print
+LDR x0, [SP], #8
+MOV X0, x0
+BL print_integer
+// Print statement
+// Visiting expression list
+// Mod operation
+// Visiting left operand
+// Constant: 10
+MOV x0, #10
+STR x0, [SP, #-8]!
+// Visiting right operand
+// Constant: 2
+MOV x0, #2
+STR x0, [SP, #-8]!
+// Popping operands
+LDR x1, [SP], #8
+LDR x0, [SP], #8
+// Calculate modulo
+SDIV x2, x0, x1
+MUL x2, x2, x1
+SUB x0, x0, x2
+// Push result
+STR x0, [SP, #-8]!
+// Popping value to print
+LDR x0, [SP], #8
+MOV X0, x0
+BL print_integer
 MOV x0, #0
 MOV x8, #93
 SVC #0
@@ -501,48 +119,6 @@ SVC #0
 
 
 // Libreria Estandar
-
-//--------------------------------------------------------------
-// print_string - Prints a null-terminated string to stdout
-//
-// Input:
-//   x0 - The address of the null-terminated string to print
-//--------------------------------------------------------------
-print_string:
-    // Save link register and other registers we'll use
-    stp     x29, x30, [sp, #-16]!
-    stp     x19, x20, [sp, #-16]!
-    
-    // x19 will hold the string address
-    mov     x19, x0
-    
-print_loop:
-    // Load a byte from the string
-    ldrb    w20, [x19]
-    
-    // Check if it's the null terminator (0)
-    cbz     w20, print_done
-    
-    // Prepare for write syscall
-    mov     x0, #1              // File descriptor: 1 for stdout
-    mov     x1, x19             // Address of the character to print
-    mov     x2, #1              // Length: 1 byte
-    mov     x8, #64             // syscall: write (64 on ARM64)
-    svc     #0                  // Make the syscall
-    
-    // Move to the next character
-    add     x19, x19, #1
-    
-    // Continue the loop
-    b       print_loop
-    
-print_done:
-    // Restore saved registers
-    ldp     x19, x20, [sp], #16
-    ldp     x29, x30, [sp], #16
-    ret
-    
-
 
 //--------------------------------------------------------------
 // print_integer - Prints a signed integer to stdout

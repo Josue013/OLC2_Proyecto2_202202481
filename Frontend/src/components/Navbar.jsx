@@ -4,7 +4,7 @@ import { openAST } from '../Services/APIs/Api';
 import { openErrorReport } from '../Services/APIs/Api';
 import { openSymbolReport } from '../Services/APIs/Api';
 
-function Navbar({ runCode, cleanOutput, newFile, openFile, saveFile }) {
+function Navbar({ runCode, cleanOutput, newFile, openFile, saveFile, downloadOutput  }) {
   const [showDropdown, setShowDropdown] = useState(false);
 
   let timeoutId;
@@ -52,6 +52,7 @@ function Navbar({ runCode, cleanOutput, newFile, openFile, saveFile }) {
       <div className="navbar-center">
         <button className='run' onClick={runCode}>▶  Run</button>
         <button className='clear' onClick={cleanOutput}>Clean</button>
+        <button className='download' onClick={downloadOutput}>Download ASM</button>
       </div>
       <div className="navbar-right">
         <div className="dropdown" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
