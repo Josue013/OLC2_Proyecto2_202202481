@@ -62,6 +62,16 @@ public interface ILanguageListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitVarDcl([NotNull] LanguageParser.VarDclContext context);
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="LanguageParser.varDcl2"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterVarDcl2([NotNull] LanguageParser.VarDcl2Context context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LanguageParser.varDcl2"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitVarDcl2([NotNull] LanguageParser.VarDcl2Context context);
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="LanguageParser.funcDCl"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>

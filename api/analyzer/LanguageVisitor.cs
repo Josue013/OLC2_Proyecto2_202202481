@@ -51,6 +51,12 @@ public interface ILanguageVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitVarDcl([NotNull] LanguageParser.VarDclContext context);
 	/// <summary>
+	/// Visit a parse tree produced by <see cref="LanguageParser.varDcl2"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitVarDcl2([NotNull] LanguageParser.VarDcl2Context context);
+	/// <summary>
 	/// Visit a parse tree produced by <see cref="LanguageParser.funcDCl"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>

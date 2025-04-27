@@ -129,11 +129,11 @@ public class InterpreterVisitor : LanguageBaseVisitor<ValueWrapper>
 
                 if (signo == ":=")
                 {
-                    if (currentEnvironment.variables.ContainsKey(id))
-                    {
-                        throw new Exception("Error: La variable " + id + " ya ha sido declarada.");
-                    }
-                    currentEnvironment.DeclareVariable(id, value, context.Start.Line, context.Start.Column);
+                    //if (currentEnvironment.variables.ContainsKey(id))
+                    //{
+                      //  throw new Exception("Error: La variable " + id + " ya ha sido declarada.");
+                    //}
+                    //currentEnvironment.DeclareVariable(id, value, context.Start.Line, context.Start.Column);
                 }
                 else if (signo == "=")
                 {

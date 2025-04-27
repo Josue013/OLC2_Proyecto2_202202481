@@ -73,6 +73,18 @@ public partial class LanguageBaseListener : ILanguageListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitVarDcl([NotNull] LanguageParser.VarDclContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="LanguageParser.varDcl2"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterVarDcl2([NotNull] LanguageParser.VarDcl2Context context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LanguageParser.varDcl2"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitVarDcl2([NotNull] LanguageParser.VarDcl2Context context) { }
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="LanguageParser.funcDCl"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>

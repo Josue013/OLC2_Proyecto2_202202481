@@ -6,9 +6,11 @@ options { caseInsensitive = false; }
 
 program: dcl*;
 
-dcl: varDcl | funcDCl | structDcl |stmt (';')?;
+dcl: varDcl | varDcl2  | funcDCl | structDcl |stmt (';')?;
 
 varDcl: 'var' ID type ('=' expr)?;
+
+varDcl2: ID ':=' expr;
 
 funcDCl: 'func' ('(' ID ID ')')? ID '(' params? ')' type? '{' dcl* '}' ;
 
@@ -114,7 +116,7 @@ expr:
 	| expr op = ('&&' | '||') expr	# Logical
 
 	// Assignment operations
-	| expr op=('=' | ':=') expr # Assign
+	| expr '='  expr # Assign
 
 	// Acceso vector
 	| ID '[' expr ']' # Slice6Stmt

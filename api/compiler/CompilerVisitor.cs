@@ -16,297 +16,453 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
 
   }
 
-    public override Object? VisitProgram(LanguageParser.ProgramContext context) {
+  public override Object? VisitProgram(LanguageParser.ProgramContext context)
+  {
 
-      foreach (var dcl in context.dcl())
-      {
-        Visit(dcl);
-      }
-
-      return null;
+    foreach (var dcl in context.dcl())
+    {
+      Visit(dcl);
     }
 
-    public override Object? VisitVarDcl(LanguageParser.VarDclContext context) {
-      return null;
-    }
+    return null;
+  }
 
-    public override Object? VisitAssign(LanguageParser.AssignContext context) {
-      return null;
-    }
+  public override Object? VisitVarDcl(LanguageParser.VarDclContext context)
+  {
 
-    public override Object? VisitExprStmt(LanguageParser.ExprStmtContext context) {
-      return null;
-    }
+    var varName = context.ID().GetText();
+    string type = context.type().GetText();
+    Code.Comment("Variable declaration: " + varName + " of type " + type);
 
-    public override Object? VisitPrintStmt(LanguageParser.PrintStmtContext context) {
+    Visit(context.expr());
+    Code.TagObject(varName);
 
-      Code.Comment("Print statement");
-      Code.Comment("Visiting expression list");
-      Visit(context.exprList());
-      Code.Comment("Popping value to print");
-      Code.Pop(Register.X0); // Pop the value to print
-      Code.PrintInteger(Register.X0); // Call print_integer function
-      
-      
-      return null;
-    }
+    return null;
+  }
 
-    public override Object? VisitIdentifier(LanguageParser.IdentifierContext context) {
-      return null;
-    }
+  public override Object? VisitVarDcl2(LanguageParser.VarDcl2Context context)
+  {
 
-    public override Object? VisitParens(LanguageParser.ParensContext context) {
-      return null;
-    }
+    var varName = context.ID().GetText();
+    Code.Comment("Variable declaration: " + varName);
 
-    public override Object? VisitNegate(LanguageParser.NegateContext context) {
-      return null;
-    }
+    Visit(context.expr());
+    Code.TagObject(varName);
 
-    public override Object? VisitInt(LanguageParser.IntContext context) {
-      var value = context.INT().GetText();
-      Code.Comment("Constant: " + value);
-      Code.Mov(Register.X0, int.Parse(value));
+    return null;
+  }
+
+  public override Object? VisitAssign(LanguageParser.AssignContext context)
+  {
+    var assignee = context.expr(0);
+
+    if (assignee is LanguageParser.IdentifierContext idContext)
+    {
+      string varName = idContext.ID().GetText();
+
+
+      // Asignación normal
+      Code.Comment("Assignment to variable: " + varName);
+      Visit(context.expr(1));
+
+      var valueObject = Code.PopObject(Register.X0);
+      var (offset, varObject) = Code.GetObject(varName);
+
+      Code.Mov(Register.X1, offset);
+      Code.Add(Register.X1, Register.SP, Register.X1);
+      Code.Str(Register.X0, Register.X1);
+
+      varObject.Type = valueObject.Type;
+
       Code.Push(Register.X0);
+      Code.PushObject(Code.CloneObject(varObject));
 
-      return null;
     }
 
-    public override Object? VisitDecimal(LanguageParser.DecimalContext context) {
-      return null;
+    return null;
+  }
+
+  public override Object? VisitExprStmt(LanguageParser.ExprStmtContext context)
+  {
+
+    Code.Comment("Expression statement");
+    Visit(context.expr());
+    Code.Comment("Popping value to discard");
+    Code.PopObject(Register.X0);
+
+    return null;
+  }
+
+  public override Object? VisitPrintStmt(LanguageParser.PrintStmtContext context)
+  {
+
+    Code.Comment("Print statement");
+    Code.Comment("Visiting expression list");
+    Visit(context.exprList());
+
+    Code.Comment("Popping value to print");
+    var value = Code.PopObject(Register.X0); // Pop the value to print
+
+    if (value.Type == StackObject.StackObjectType.Int)
+    {
+      Code.PrintInteger(Register.X0); // Call print_integer function
+    } else if (value.Type == StackObject.StackObjectType.String)
+    {
+      Code.PrintString(Register.X0); // Call print_string function
+      Code.Mov("w0", 10);  // (\n)
+      Code.Push("x0");
+      Code.PrintString(Register.SP);
     }
 
-    public override Object? VisitBool(LanguageParser.BoolContext context) {
-      return null;
+    return null;
+  }
+
+  public override Object? VisitIdentifier(LanguageParser.IdentifierContext context)
+  {
+
+    var id = context.ID().GetText();
+
+    var (offset, obj) = Code.GetObject(id); // Get the variable object
+
+    Code.Mov(Register.X0, offset); // Move the offset to X0
+    Code.Add(Register.X0, Register.SP, Register.X0); // Add the offset to SP to get the address
+
+    Code.Ldr(Register.X0, Register.X0); // Load the value from the address
+    Code.Push(Register.X0); // Push the value to the stack
+
+    var newObject = Code.CloneObject(obj); // Clone the object
+    newObject.Id = null;
+    Code.PushObject(newObject); // Push the object to the stack
+
+
+    return null;
+  }
+
+  public override Object? VisitParens(LanguageParser.ParensContext context)
+  {
+    return null;
+  }
+
+  public override Object? VisitNegate(LanguageParser.NegateContext context)
+  {
+    return null;
+  }
+
+  public override Object? VisitInt(LanguageParser.IntContext context)
+  {
+    var value = context.INT().GetText();
+    Code.Comment("Constant: " + value);
+
+    var intObject = Code.IntObject();
+    Code.PushConstant(intObject, int.Parse(value));
+
+    return null;
+  }
+
+  public override Object? VisitDecimal(LanguageParser.DecimalContext context)
+  {
+    return null;
+  }
+
+  public override Object? VisitBool(LanguageParser.BoolContext context)
+  {
+    return null;
+  }
+
+  public override Object? VisitNil(LanguageParser.NilContext context)
+  {
+    return null;
+  }
+
+  public override Object? VisitString(LanguageParser.StringContext context)
+  {
+
+    var value = context.STRING().GetText().Trim('"');
+    Code.Comment("String constant: " + value.ToString());
+
+    var stringObject = Code.StringObject();
+    Code.PushConstant(stringObject, value); // Push the string constant to the stack
+
+    return null;
+  }
+
+  public override Object? VisitRune(LanguageParser.RuneContext context)
+  {
+    return null;
+  }
+
+  public override Object? VisitBlockStmt(LanguageParser.BlockStmtContext context)
+  {
+
+    Code.Comment("Block statement");
+    Code.NewScope();
+
+    foreach (var dcl in context.dcl())
+    {
+      Visit(dcl);
     }
 
-    public override Object? VisitNil(LanguageParser.NilContext context) {
-      return null;
+    int bytesToRemove = Code.EndScope();
+
+    if (bytesToRemove > 0)
+    {
+      Code.Comment("Removing " + bytesToRemove + " bytes from stack");
+      Code.Mov(Register.X0, bytesToRemove);
+      Code.Add(Register.SP, Register.SP, Register.X0); // Adjust stack pointer
+      Code.Comment("Stack pointer adjusted");
+
+
     }
 
-    public override Object? VisitString(LanguageParser.StringContext context) {
-      return null;
+    return null;
+  }
+
+  public override Object? VisitMulDiv(LanguageParser.MulDivContext context)
+  {
+
+    Code.Comment("Mul/Div operation");
+    var operation = context.op.Text;
+
+    // 1 * 2
+    // top -> []
+    Code.Comment("Visiting left operand");
+    Visit(context.expr(0)); // Visit 2; top -> [2, 1]
+    Code.Comment("Visiting right operand");
+    Visit(context.expr(1)); // Visit 1; top -> [1]
+
+    Code.Comment("Popping operands");
+    Code.Pop(Register.X1); // Pop 2; top -> [1]
+    Code.Pop(Register.X0); // Pop 1; top -> []
+
+    if (operation == "*")
+    {
+      Code.Mul(Register.X0, Register.X0, Register.X1); // X0 = X0 * X1
+    }
+    else if (operation == "/")
+    {
+      Code.Div(Register.X0, Register.X0, Register.X1); // X0 = X0 / X1
     }
 
-    public override Object? VisitRune(LanguageParser.RuneContext context) {
-      return null;
+    Code.Comment("Pushing result");
+    Code.Push(Register.X0); // Push result; top -> [result]
+
+    return null;
+  }
+
+  public override Object? VisitAddSub(LanguageParser.AddSubContext context)
+  {
+
+    Code.Comment("Add/Sub operation");
+    var operation = context.op.Text;
+
+    // 1 + 2
+    // top -> []
+    Code.Comment("Visiting left operand");
+    Visit(context.expr(0)); // Visit 2; top -> [2, 1]
+    Code.Comment("Visiting right operand");
+    Visit(context.expr(1)); // Visit 1; top -> [1]
+
+    Code.Comment("Popping operands");
+    var right = Code.PopObject(Register.X1); // Pop 2; top -> [1]
+    var left = Code.PopObject(Register.X0); // Pop 1; top -> []
+
+    if (operation == "+")
+    {
+      Code.Add(Register.X0, Register.X0, Register.X1); // X0 = X0 + X1
+    }
+    else if (operation == "-")
+    {
+      Code.Sub(Register.X0, Register.X0, Register.X1); // X0 = X0 - X1
     }
 
-    public override Object? VisitBlockStmt(LanguageParser.BlockStmtContext context) {
-      return null;
-    }
+    Code.Comment("Pushing result");
+    Code.Push(Register.X0); // Push result; top -> [result]
+    Code.PushObject(Code.CloneObject(left));
 
-    public override Object? VisitMulDiv(LanguageParser.MulDivContext context) {
+    return null;
+  }
 
-      Code.Comment("Mul/Div operation");
-      var operation = context.op.Text;
+  public override Object? VisitMod(LanguageParser.ModContext context)
+  {
 
-      // 1 * 2
-      // top -> []
-      Code.Comment("Visiting left operand");
-      Visit(context.expr(0)); // Visit 2; top -> [2, 1]
-      Code.Comment("Visiting right operand");
-      Visit(context.expr(1)); // Visit 1; top -> [1]
+    Code.Comment("Mod operation");
 
-      Code.Comment("Popping operands");
-      Code.Pop(Register.X1); // Pop 2; top -> [1]
-      Code.Pop(Register.X0); // Pop 1; top -> []
+    // Visitar operandos y apilarlos
+    Code.Comment("Visiting left operand");
+    Visit(context.expr(0)); // Visit first operand; top -> [op1]
+    Code.Comment("Visiting right operand");
+    Visit(context.expr(1)); // Visit second operand; top -> [op2, op1]
 
-      if (operation == "*")
-      {
-        Code.Mul(Register.X0, Register.X0, Register.X1); // X0 = X0 * X1
-      }
-      else if (operation == "/")
-      {
-        Code.Div(Register.X0, Register.X0, Register.X1); // X0 = X0 / X1
-      }
+    Code.Comment("Popping operands");
+    Code.Pop(Register.X1); // Pop second operand; top -> [op1]
+    Code.Pop(Register.X0); // Pop first operand; top -> []
 
-      Code.Comment("Pushing result");
-      Code.Push(Register.X0); // Push result; top -> [result]
+    // Calcular el módulo usando: a % b = a - (a/b * b)
+    Code.Comment("Calculate modulo");
+    Code.Div(Register.X2, Register.X0, Register.X1); // X2 = X0 / X1 
+    Code.Mul(Register.X2, Register.X2, Register.X1);  // X2 = X2 * X1
+    Code.Sub(Register.X0, Register.X0, Register.X2);  // X0 = X0 - X2
 
-      return null;
-    }
+    Code.Comment("Push result");
+    Code.Push(Register.X0); // Push result; top -> [result]
 
-    public override Object? VisitAddSub(LanguageParser.AddSubContext context) {
+    return null;
+  }
 
-      Code.Comment("Add/Sub operation");
-      var operation = context.op.Text;
+  public override Object? VisitAddAssign(LanguageParser.AddAssignContext context)
+  {
+    return null;
+  }
 
-      // 1 + 2
-      // top -> []
-      Code.Comment("Visiting left operand");
-      Visit(context.expr(0)); // Visit 2; top -> [2, 1]
-      Code.Comment("Visiting right operand");
-      Visit(context.expr(1)); // Visit 1; top -> [1]
+  public override Object? VisitSubAssign(LanguageParser.SubAssignContext context)
+  {
+    return null;
+  }
 
-      Code.Comment("Popping operands");
-      Code.Pop(Register.X1); // Pop 2; top -> [1]
-      Code.Pop(Register.X0); // Pop 1; top -> []
+  public override Object? VisitRelational(LanguageParser.RelationalContext context)
+  {
+    return null;
+  }
 
-      if (operation == "+")
-      {
-        Code.Add(Register.X0, Register.X0, Register.X1); // X0 = X0 + X1
-      }
-      else if (operation == "-")
-      {
-        Code.Sub(Register.X0, Register.X0, Register.X1); // X0 = X0 - X1
-      }
+  public override Object? VisitComparison(LanguageParser.ComparisonContext context)
+  {
+    return null;
+  }
 
-      Code.Comment("Pushing result");
-      Code.Push(Register.X0); // Push result; top -> [result]
+  public override Object? VisitLogical(LanguageParser.LogicalContext context)
+  {
+    return null;
+  }
 
-      return null;
-    }
+  public override Object? VisitNot(LanguageParser.NotContext context)
+  {
+    return null;
+  }
 
-    public override Object? VisitMod(LanguageParser.ModContext context) {
+  public override Object? VisitIfStmt(LanguageParser.IfStmtContext context)
+  {
+    return null;
+  }
 
-      Code.Comment("Mod operation");
+  public override Object? VisitSwitchStmt(LanguageParser.SwitchStmtContext context)
+  {
+    return null;
+  }
 
-      // Visitar operandos y apilarlos
-      Code.Comment("Visiting left operand");
-      Visit(context.expr(0)); // Visit first operand; top -> [op1]
-      Code.Comment("Visiting right operand"); 
-      Visit(context.expr(1)); // Visit second operand; top -> [op2, op1]
+  public override Object? VisitIncdec(LanguageParser.IncdecContext context)
+  {
+    return null;
+  }
 
-      Code.Comment("Popping operands");
-      Code.Pop(Register.X1); // Pop second operand; top -> [op1]
-      Code.Pop(Register.X0); // Pop first operand; top -> []
+  public override Object? VisitForWhileStmt(LanguageParser.ForWhileStmtContext context)
+  {
+    return null;
+  }
 
-      // Calcular el módulo usando: a % b = a - (a/b * b)
-      Code.Comment("Calculate modulo");
-      Code.Div(Register.X2, Register.X0, Register.X1); // X2 = X0 / X1 
-      Code.Mul(Register.X2, Register.X2, Register.X1);  // X2 = X2 * X1
-      Code.Sub(Register.X0, Register.X0, Register.X2);  // X0 = X0 - X2
+  public override Object? VisitForClassicStmt(LanguageParser.ForClassicStmtContext context)
+  {
+    return null;
+  }
 
-      Code.Comment("Push result");
-      Code.Push(Register.X0); // Push result; top -> [result]
+  public override Object? VisitForRangeStmt(LanguageParser.ForRangeStmtContext context)
+  {
+    return null;
+  }
 
-      return null;
-    }
+  public override Object? VisitSlice1Stmt(LanguageParser.Slice1StmtContext context)
+  {
+    return null;
+  }
 
-    public override Object? VisitAddAssign(LanguageParser.AddAssignContext context) {
-      return null;
-    }
+  public override Object? VisitSlice2Stmt(LanguageParser.Slice2StmtContext context)
+  {
+    return null;
+  }
 
-    public override Object? VisitSubAssign(LanguageParser.SubAssignContext context) {
-      return null;
-    }
+  public override Object? VisitSlice3Stmt(LanguageParser.Slice3StmtContext context)
+  {
+    return null;
+  }
 
-    public override Object? VisitRelational(LanguageParser.RelationalContext context) {
-      return null;
-    }
+  public override Object? VisitSlice6Stmt(LanguageParser.Slice6StmtContext context)
+  {
+    return null;
+  }
 
-    public override Object? VisitComparison(LanguageParser.ComparisonContext context) {
-      return null;
-    }
+  public override Object? VisitSlice4Stmt(LanguageParser.Slice4StmtContext context)
+  {
+    return null;
+  }
 
-    public override Object? VisitLogical(LanguageParser.LogicalContext context) {
-      return null;
-    }
+  public override Object? VisitSlice5Stmt(LanguageParser.Slice5StmtContext context)
+  {
+    return null;
+  }
 
-    public override Object? VisitNot(LanguageParser.NotContext context) {
-      return null;
-    }
+  public override Object? VisitSlice7Stmt(LanguageParser.Slice7StmtContext context)
+  {
+    return null;
+  }
 
-    public override Object? VisitIfStmt(LanguageParser.IfStmtContext context) {
-      return null;
-    }
+  public override Object? VisitBreakStmt(LanguageParser.BreakStmtContext context)
+  {
+    return null;
+  }
 
-    public override Object? VisitSwitchStmt(LanguageParser.SwitchStmtContext context) {
-      return null;
-    }
+  public override Object? VisitContinueStmt(LanguageParser.ContinueStmtContext context)
+  {
+    return null;
+  }
 
-    public override Object? VisitIncdec(LanguageParser.IncdecContext context) {
-      return null;
-    }
+  public override Object? VisitReturnStmt(LanguageParser.ReturnStmtContext context)
+  {
+    return null;
+  }
 
-    public override Object? VisitForWhileStmt(LanguageParser.ForWhileStmtContext context) {
-      return null;
-    }
+  public override Object? VisitCallExpr(LanguageParser.CallExprContext context)
+  {
+    return null;
+  }
 
-    public override Object? VisitForClassicStmt(LanguageParser.ForClassicStmtContext context) {
-      return null;
-    }
+  public override Object? VisitAtoiCall(LanguageParser.AtoiCallContext context)
+  {
+    return null;
+  }
 
-    public override Object? VisitForRangeStmt(LanguageParser.ForRangeStmtContext context) {
-      return null;
-    }
+  public override Object? VisitParseFloatCall(LanguageParser.ParseFloatCallContext context)
+  {
+    return null;
+  }
 
-    public override Object? VisitSlice1Stmt(LanguageParser.Slice1StmtContext context) {
-      return null;
-    }
+  public override Object? VisitTypeOfCall(LanguageParser.TypeOfCallContext context)
+  {
+    return null;
+  }
 
-    public override Object? VisitSlice2Stmt(LanguageParser.Slice2StmtContext context) {
-      return null;
-    }
+  public override Object? VisitIndexCall(LanguageParser.IndexCallContext context)
+  {
+    return null;
+  }
 
-    public override Object? VisitSlice3Stmt(LanguageParser.Slice3StmtContext context) {
-      return null;
-    }
+  public override Object? VisitJoinCall(LanguageParser.JoinCallContext context)
+  {
+    return null;
+  }
 
-    public override Object? VisitSlice6Stmt(LanguageParser.Slice6StmtContext context) {
-      return null;
-    }
+  public override Object? VisitLenCall(LanguageParser.LenCallContext context)
+  {
+    return null;
+  }
 
-    public override Object? VisitSlice4Stmt(LanguageParser.Slice4StmtContext context) {
-      return null;
-    }
+  public override Object? VisitAppendCall(LanguageParser.AppendCallContext context)
+  {
+    return null;
+  }
 
-    public override Object? VisitSlice5Stmt(LanguageParser.Slice5StmtContext context) {
-      return null;
-    }
-
-    public override Object? VisitSlice7Stmt(LanguageParser.Slice7StmtContext context) {
-      return null;
-    }
-
-    public override Object? VisitBreakStmt(LanguageParser.BreakStmtContext context) {
-      return null;
-    }
-
-    public override Object? VisitContinueStmt(LanguageParser.ContinueStmtContext context) {
-      return null;
-    }
-
-    public override Object? VisitReturnStmt(LanguageParser.ReturnStmtContext context) {
-      return null;
-    }
-
-    public override Object? VisitCallExpr(LanguageParser.CallExprContext context) {
-      return null;
-    }
-
-    public override Object? VisitAtoiCall(LanguageParser.AtoiCallContext context) {
-      return null;
-    }
-
-    public override Object? VisitParseFloatCall(LanguageParser.ParseFloatCallContext context) {
-      return null;
-    }
-
-    public override Object? VisitTypeOfCall(LanguageParser.TypeOfCallContext context) {
-      return null;
-    }
-
-    public override Object? VisitIndexCall(LanguageParser.IndexCallContext context) {
-      return null;
-    }
-
-    public override Object? VisitJoinCall(LanguageParser.JoinCallContext context) {
-      return null;
-    }
-
-    public override Object? VisitLenCall(LanguageParser.LenCallContext context) {
-      return null;
-    }
-
-    public override Object? VisitAppendCall(LanguageParser.AppendCallContext context) {
-      return null;
-    }
-
-    public override Object? VisitFuncDCl(LanguageParser.FuncDClContext context) {
-      return null;
-    }
+  public override Object? VisitFuncDCl(LanguageParser.FuncDClContext context)
+  {
+    return null;
+  }
 
 
 
