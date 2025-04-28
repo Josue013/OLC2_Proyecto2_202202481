@@ -298,6 +298,11 @@ public class ArmGenerator
     instructions.Add($"FDIV {rd}, {rn}, {rm}");
   }
 
+  public void Cbz(string rs, string label)
+  {
+    instructions.Add($"CBZ {rs}, {label}");
+  }
+
   public void Cmp(string rs1, string rs2)
   {
     instructions.Add($"CMP {rs1}, {rs2}");

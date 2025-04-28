@@ -4,7 +4,7 @@ public class FuncionesEmbebidas
 {
     public static void Generar(Environment env)
     {
-        env.DeclareVariable("time", new FunctionValue(new TimeEmbebida(), "time"), 0, 0);
+        //env.DeclareVariable("time", new FunctionValue(new TimeEmbebida(), "time"), 0, 0);
         env.DeclareVariable("strconv.Atoi", new FunctionValue(new AtoiEmbebida(), "strconv.Atoi"), 0, 0);
         env.DeclareVariable("strconv.ParseFloat", new FunctionValue(new ParseFloatEmbebida(), "strconv.ParseFloat"), 0, 0);
         env.DeclareVariable("reflect.TypeOf", new FunctionValue(new TypeOfEmbebida(), "reflect.TypeOf"), 0, 0);
@@ -15,15 +15,6 @@ public class FuncionesEmbebidas
     }
 }
 
-public class TimeEmbebida : Invocable
-{
-    public int Arity() => 0;
-
-    public ValueWrapper Invoke(List<ValueWrapper> args, InterpreterVisitor visitor)
-    {
-        return new StringValue(DateTime.Now.ToString());
-    }
-}
 
 public class AtoiEmbebida : Invocable
 {

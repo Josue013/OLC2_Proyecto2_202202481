@@ -1,0 +1,53 @@
+fmt.Println("**************")
+fmt.Println("***** IF *****")
+fmt.Println("**************\n")
+
+fmt.Println("Ejemplo 1:")
+
+time := 5
+
+if time < 10 {
+  fmt.Println("Good Morning.")
+} else if time < 20 {
+  fmt.Println("Good Day.")
+} else {
+  fmt.Println("Good Evening.")
+}
+
+fmt.Println("\nEjemplo 2:")
+
+a := 14
+b := 14
+
+if a<b {
+  fmt.Println("a is less than b.")
+} else if a>b {
+  fmt.Println("b is more than b.")
+} else {
+  fmt.Println("a and b are equal")
+}
+
+fmt.Println("\nEjemplo 3:")
+
+x := 30
+
+if x >= 10 {
+  fmt.Println("x is larger than or equal to 10.")
+} else if x > 20 {
+  fmt.Println("x is larger than 20.")
+} else {
+  fmt.Println("x is less than 10.")
+}
+
+fmt.Println("\nEjemplo 4:")
+
+num := 20
+  if num >= 10 {
+    fmt.Println("Num is more than 10.")
+    if num > 15 {
+      fmt.Println("Num is also more than 15.")
+     }
+  } else {
+    fmt.Println("Num is less than 10.")
+  }
+

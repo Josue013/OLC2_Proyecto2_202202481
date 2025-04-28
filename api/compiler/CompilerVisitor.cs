@@ -605,6 +605,55 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
 
   public override Object? VisitIfStmt(LanguageParser.IfStmtContext context)
   {
+
+    Code.Comment("If statement");
+    Visit(context.expr()); // Visit condition; top -> [condition]
+    Code.PopObject(Register.X0); // Pop condition; top -> []
+
+    /* 
+    
+    HAY 2 CASOS:
+
+    1. Es solamente un if
+    if (condition) goto endLabel
+      ... body 
+    endLabel:
+
+    2. Es un if-else
+    if (condition) goto elseLabel
+      ... body 
+      goto endLabel
+    elseLabel:
+      ... else body
+    endLabel:
+
+    */
+
+    var TieneElse = context.stmt().Length > 1;
+
+    if(TieneElse)
+    {
+      Code.Comment("If-else statement");
+      var elseLabel = Code.GetLabel();
+      var endLabel = Code.GetLabel();
+
+      Code.Cbz(Register.X0, elseLabel); // If condition is false, jump to else label
+      Visit(context.stmt(0)); // Visit if body; top -> [] 
+      Code.B(endLabel); // Jump to end label
+      Code.SetLabel(elseLabel); // Set else label
+      Visit(context.stmt(1)); // Visit else body; top -> []
+      Code.SetLabel(endLabel); // Set end label
+
+    }
+    else
+    {
+      Code.Comment("If statement");
+      var endLabel = Code.GetLabel();
+      Code.Cbz(Register.X0, endLabel); // If condition is false, jump to end label
+      Visit(context.stmt(0)); // Visit if body; top -> []
+      Code.SetLabel(endLabel); // Set end label
+    }
+
     return null;
   }
 
