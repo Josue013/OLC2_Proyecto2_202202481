@@ -13,7 +13,7 @@ public class StackObject
 public class ArmGenerator
 {
   public readonly List<string> instructions = new List<string>();
-  private readonly StandardLibrary stdLib = new StandardLibrary();
+  public readonly StandardLibrary stdLib = new StandardLibrary();
   private List<StackObject> stack = new List<StackObject>();
   private int depth = 0;
   private int labelCounter = 0;
@@ -301,6 +301,11 @@ public class ArmGenerator
   public void Cbz(string rs, string label)
   {
     instructions.Add($"CBZ {rs}, {label}");
+  }
+
+  public void Cbnz(string rs, string label)
+  {
+    instructions.Add($"CBNZ {rs}, {label}");
   }
 
   public void Cmp(string rs1, string rs2)

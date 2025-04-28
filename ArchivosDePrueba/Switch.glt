@@ -1,0 +1,94 @@
+
+fmt.Println("******************")
+fmt.Println("***** SWITCH *****")
+fmt.Println("******************\n")
+
+fmt.Println("Ejemplo 1:")
+numero := 2
+
+switch numero {
+  case 1:
+  fmt.Println("Uno") // Se ejecuta si numero == 1
+  case 2:
+  fmt.Println("Dos") // Se ejecuta si numero == 2
+  case 3:
+  fmt.Println("Tres") // Se ejecuta si numero == 3
+  default:
+  fmt.Println("Número inválido") // Se ejecuta si ninguno de los casos coincide
+}
+
+fmt.Println("\nEjemplo 2:")
+
+day := 4
+
+switch day {
+  case 1:
+    fmt.Println("Monday")
+  case 2:
+    fmt.Println("Tuesday")
+  case 3:
+    fmt.Println("Wednesday")
+  case 4:
+    fmt.Println("Thursday")
+  case 5:
+    fmt.Println("Friday")
+  case 6:
+    fmt.Println("Saturday")
+  case 7:
+    fmt.Println("Sunday")
+}
+
+fmt.Println("\nEjemplo 3:")
+
+// Verificar si un número es par o impar
+num := 7
+
+switch num % 2 {
+  case 0:
+    fmt.Println("El número es par")
+  case 1:
+    fmt.Println("El número es impar")
+}
+
+fmt.Println("\nEjemplo 4:")
+
+
+// Seleccionar nivel de dificultad 
+dificultad := "medio"
+
+switch dificultad {
+case "fácil":
+  fmt.Println("Nivel fácil")
+case "medio":
+  fmt.Println("Nivel intermedio")
+case "difícil":
+  fmt.Println("Nivel avanzado")
+default:
+  fmt.Println("Nivel no definido")
+}
+
+
+fmt.Println("\nEjemplo con break explícito:")
+
+num2 := 3
+
+switch num2 {
+case 1:
+    fmt.Println("Uno")
+    break 
+    fmt.Println("Esto no deberia salir xd")
+case 2:
+    fmt.Println("Dos")
+    break // Salir del switch
+    fmt.Println("Esto no deberia salir xd")
+case 3:
+    fmt.Println("Tres")
+    break
+    fmt.Println("Esto no deberia salir xd")
+default:
+    fmt.Println("Número inválido")
+}
+
+
+
+

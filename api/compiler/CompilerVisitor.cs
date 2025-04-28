@@ -6,10 +6,14 @@ using System.Text;
 using SliceValue = api.compiler.SliceValue;
 
 
+
 public class CompilerVisitor : LanguageBaseVisitor<Object?>
 {
 
   public ArmGenerator Code = new ArmGenerator();
+  private String? ContinueLabel = null;
+  private String? BreakLabel = null;
+  private String? ReturnLabel = null;
 
   public CompilerVisitor()
   {
@@ -482,8 +486,6 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
 
     if (isLeftDecimal || isRightDecimal)
     {
-      // TODO:
-
       Code.Comment("Comparing decimal values");
       if (!isLeftDecimal) Code.Scvtf(Register.D1, Register.X1); // Convert left to float
       if (!isRightDecimal) Code.Scvtf(Register.D0, Register.X0); // Convert right to float
@@ -538,6 +540,42 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
 
       return null;
     }
+
+    if (right.Type == StackObject.StackObjectType.String && 
+    left.Type == StackObject.StackObjectType.String)
+{
+    Code.Comment("String comparison");
+    var StringTrueLabel = Code.GetLabel();
+    var StrinEndLabel = Code.GetLabel();
+    
+    // Llamar a la función de comparación
+    Code.stdLib.Use("compare_strings");
+    Code.instructions.Add("BL compare_strings");
+    
+    // x0 contiene 0 si son iguales, 1 si son diferentes
+    if (operation == "==")
+    {
+        Code.Cbz(Register.X0, StringTrueLabel);  // Si x0 es 0 (iguales), saltar a true
+    }
+    else if (operation == "!=")
+    {
+        Code.Cbnz(Register.X0, StringTrueLabel); // Si x0 no es 0 (diferentes), saltar a true
+    }
+    
+    // Resultado falso
+    Code.Mov(Register.X0, 0);
+    Code.Push(Register.X0);
+    Code.B(StrinEndLabel);
+    
+    // Resultado verdadero
+    Code.SetLabel(StringTrueLabel);
+    Code.Mov(Register.X0, 1);
+    Code.Push(Register.X0);
+    
+    Code.SetLabel(StrinEndLabel);
+    Code.PushObject(Code.BoolObject());
+    return null;
+}
 
     Code.Cmp(Register.X1, Register.X0); // Compare left and right operands
     var trueLabel = Code.GetLabel();
@@ -658,9 +696,118 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
   }
 
   public override Object? VisitSwitchStmt(LanguageParser.SwitchStmtContext context)
-  {
+{
+    Code.Comment("Switch statement");
+    
+    // Evaluar la expresión del switch
+    Visit(context.expr(0));
+    var switchValue = Code.PopObject(Register.X0);
+    Code.Push(Register.X0);  // Guardar copia del valor del switch
+    
+    var endLabel = Code.GetLabel();
+    var previousBreakLabel = BreakLabel;
+    BreakLabel = endLabel;
+    
+    var nextCaseLabel = Code.GetLabel();
+    var defaultLabel = Code.GetLabel();
+    bool hasDefault = false;
+    
+    // Primera pasada: buscar si hay default y contar casos
+    int totalCases = 0;
+    for (int i = 0; i < context.children.Count; i++)
+    {
+        if (context.children[i].GetText() == "case")
+        {
+            totalCases++;
+        }
+        else if (context.children[i].GetText() == "default")
+        {
+            hasDefault = true;
+        }
+    }
+    
+    // Segunda pasada: generar código para cada caso
+    int currentCase = 0;
+    for (int i = 0; i < context.children.Count; i++)
+    {
+        if (context.children[i].GetText() == "case")
+        {
+            Code.SetLabel(nextCaseLabel);
+            nextCaseLabel = Code.GetLabel();
+            
+            // Evaluar la expresión del caso
+            Visit(context.expr(currentCase + 1));
+            var caseType = Code.TopObject().Type;
+            var caseValue = Code.PopObject(Register.X1);
+            
+            // Recuperar valor del switch para comparación
+            Code.Pop(Register.X0);
+            Code.Push(Register.X0);
+            
+            // Comparar según el tipo
+            if (switchValue.Type == StackObject.StackObjectType.String && 
+                caseType == StackObject.StackObjectType.String)
+            {
+                // Comparación de strings
+                Code.stdLib.Use("compare_strings");
+                Code.instructions.Add("BL compare_strings");
+                // Si son diferentes (x0 != 0), saltar al siguiente caso o al default/end
+                var nextLabel = (currentCase < totalCases - 1) ? nextCaseLabel : 
+                              hasDefault ? defaultLabel : endLabel;
+                Code.Cbnz(Register.X0, nextLabel);
+            }
+            else
+            {
+                // Comparación numérica
+                Code.Cmp(Register.X0, Register.X1);
+                // Si son diferentes, saltar al siguiente caso o al default/end
+                var nextLabel = (currentCase < totalCases - 1) ? nextCaseLabel : 
+                              hasDefault ? defaultLabel : endLabel;
+                Code.Bne(nextLabel);
+            }
+            
+            // Si coincide, ejecutar el bloque de código
+            i++;
+            while (i < context.children.Count && 
+                   context.children[i].GetText() != "case" && 
+                   context.children[i].GetText() != "default")
+            {
+                Visit(context.children[i]);
+                i++;
+            }
+            
+            Code.B(endLabel);  // Break implícito
+            i--;
+            currentCase++;
+        }
+        else if (context.children[i].GetText() == "default")
+        {
+            Code.SetLabel(defaultLabel);
+            i++;
+            while (i < context.children.Count && 
+                   context.children[i].GetText() != "case")
+            {
+                Visit(context.children[i]);
+                i++;
+            }
+            i--;
+            Code.B(endLabel);  // Break implícito
+        }
+    }
+    
+    // Si no hubo coincidencia y no hay default, saltar al final
+    if (!hasDefault)
+    {
+        Code.SetLabel(nextCaseLabel);
+        Code.B(endLabel);
+    }
+    
+    Code.SetLabel(endLabel);
+    Code.Pop(Register.X0);  // Limpiar el valor del switch de la pila
+    BreakLabel = previousBreakLabel;
+    
     return null;
-  }
+}
 
   public override Object? VisitIncdec(LanguageParser.IncdecContext context)
   {
@@ -719,11 +866,21 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
 
   public override Object? VisitBreakStmt(LanguageParser.BreakStmtContext context)
   {
+    Code.Comment("Break statement");
+    if (BreakLabel != null)
+    {
+      Code.B(BreakLabel);
+    }
     return null;
   }
 
   public override Object? VisitContinueStmt(LanguageParser.ContinueStmtContext context)
   {
+    Code.Comment("Continue statement");
+    if (ContinueLabel != null)
+    {
+      Code.B(ContinueLabel);
+    }
     return null;
   }
 
