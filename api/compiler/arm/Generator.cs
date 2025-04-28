@@ -12,7 +12,7 @@ public class StackObject
 
 public class ArmGenerator
 {
-  private readonly List<string> instructions = new List<string>();
+  public readonly List<string> instructions = new List<string>();
   private readonly StandardLibrary stdLib = new StandardLibrary();
   private List<StackObject> stack = new List<StackObject>();
   private int depth = 0;
@@ -38,24 +38,20 @@ public class ArmGenerator
         Push(Register.X0);
         break;
       case StackObject.StackObjectType.Float:
-        long floatBits = BitConverter.DoubleToInt64Bits((double)value);
+    long floatBits = BitConverter.DoubleToInt64Bits((double)value);
+    
+    // Usar MOVZ solo para el primer segmento
+    instructions.Add($"MOVZ X0, #{floatBits & 0xFFFF}, LSL #0");
+    
+    // Usar MOVK para los segmentos restantes
+    for (int i = 1; i < 4; i++)
+    {
+        long segment = (floatBits >> (i * 16)) & 0xFFFF;
+        instructions.Add($"MOVK X0, #{segment}, LSL #{16 * i}");
+    }
 
-        short[] floatParts = new short[4];
-        for (int i = 0; i < 4; i++)
-        {
-          floatParts[i] = (short)((floatBits >> (i * 16)) & 0xFFFF);
-        }
-
-        instructions.Add($"MOVZ X0, #{floatParts[0]}, LSL #0");
-        for (int i = 1; i < 4; i++)
-        {
-          instructions.Add($"MOVK X0, #{floatParts[i]}, LSL #{16 * i}");
-        }
-
-        Push(Register.X0);
-
-
-        break;
+    Push(Register.X0);
+    break;
       case StackObject.StackObjectType.String:
         List<byte> stringArray = Utils.StringTo1ByteArray((string)value);
 

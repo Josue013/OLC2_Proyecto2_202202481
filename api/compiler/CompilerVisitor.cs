@@ -203,9 +203,33 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
   }
 
   public override Object? VisitNegate(LanguageParser.NegateContext context)
-  {
+{
+    Code.Comment("Negate operation");
+    Visit(context.expr());
+
+    var isDecimal = Code.TopObject().Type == StackObject.StackObjectType.Float;
+    var value = Code.PopObject(isDecimal ? Register.D0 : Register.X0);
+
+    if (isDecimal)
+    {
+        // Para números decimales, usar instrucción FNEG
+        Code.Comment("Negating decimal value");
+        Code.instructions.Add($"FNEG {Register.D0}, {Register.D0}");
+        Code.Push(Register.D0);
+    }
+    else 
+    {
+        // Para enteros, usar instrucción NEG
+        Code.Comment("Negating integer value");
+        Code.instructions.Add($"NEG {Register.X0}, {Register.X0}");
+        Code.Push(Register.X0);
+    }
+
+    // Mantener el tipo del objeto
+    Code.PushObject(Code.CloneObject(value));
+
     return null;
-  }
+}
 
   public override Object? VisitInt(LanguageParser.IntContext context)
   {
