@@ -208,6 +208,11 @@ public class ArmGenerator
     instructions.Add($"ADD {rd}, {rn}, {rm}");
   }
 
+  public void Add(string rd, string rn, int rm)
+  {
+    instructions.Add($"ADD {rd}, {rn}, {rm}");
+  }
+
   // Instruction Sub
   public void Sub(string rd, string rn, string rm)
   {
@@ -309,6 +314,11 @@ public class ArmGenerator
   }
 
   public void Cmp(string rs1, string rs2)
+  {
+    instructions.Add($"CMP {rs1}, {rs2}");
+  }
+
+  public void Cmp(string rs1, int rs2)
   {
     instructions.Add($"CMP {rs1}, {rs2}");
   }

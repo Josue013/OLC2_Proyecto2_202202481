@@ -45,7 +45,7 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
         "int" => Code.IntObject(),
         "float64" => Code.FloatObject(),
         "string" => Code.StringObject(),
-        "bool" => Code.IntObject(), // bool se maneja como int (0=false, 1=true)
+        "bool" => Code.BoolObject(), // bool se maneja como int (0=false, 1=true)
         _ => throw new Exception($"Tipo no soportado: {type}")
       };
 
@@ -63,7 +63,7 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
           Code.PushConstant(defaultObj, "");
           break;
         case "bool":
-          Code.PushConstant(defaultObj, 0); // false
+          Code.PushConstant(defaultObj, false); // false
           break;
       }
     }
@@ -131,49 +131,49 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
   }
 
   public override Object? VisitPrintStmt(LanguageParser.PrintStmtContext context)
-  {
+{
     Code.Comment("Print statement");
     bool isFirst = true;
 
     // Visitar cada expresión en la lista
     foreach (var expr in context.exprList().expr())
     {
-      // Si no es el primer elemento, imprimir un espacio
-      if (!isFirst)
-      {
-        Code.Comment("Print space between values");
-        Code.Mov("w0", 32);
-        Code.Push("x0");
-        Code.PrintString(Register.SP);
-      }
+        // Si no es el primer elemento, imprimir un espacio
+        if (!isFirst)
+        {
+            Code.Comment("Print space between values");
+            Code.Mov("w0", 32);
+            Code.Push("x0");
+            Code.PrintString(Register.SP);
+            Code.Add(Register.SP, Register.SP, 8); // Restaurar el stack pointer después de imprimir el espacio
+        }
 
-      Code.Comment("Visiting expression");
-      Visit(expr);
+        Code.Comment("Visiting expression");
+        Visit(expr);
 
-      Code.Comment("Popping value to print");
-      var isDouble = Code.TopObject().Type == StackObject.StackObjectType.Float;
-      var value = Code.PopObject(isDouble ? Register.D0 : Register.X0);
+        Code.Comment("Popping value to print");
+        var isDouble = Code.TopObject().Type == StackObject.StackObjectType.Float;
+        var value = Code.PopObject(isDouble ? Register.D0 : Register.X0);
 
-      // Imprimir según el tipo
-      if (value.Type == StackObject.StackObjectType.Int)
-      {
-        Code.PrintInteger(Register.X0);
-      }
-      else if (value.Type == StackObject.StackObjectType.String)
-      {
-        Code.PrintString(Register.X0);
-      }
-      else if (value.Type == StackObject.StackObjectType.Float)
-      {
-        Code.PrintFloat();
-      }
-      else if (value.Type == StackObject.StackObjectType.Bool)
-      {
-        Code.PrintBool(Register.X0);
-      }
+        // Imprimir según el tipo
+        if (value.Type == StackObject.StackObjectType.Int)
+        {
+            Code.PrintInteger(Register.X0);
+        }
+        else if (value.Type == StackObject.StackObjectType.String)
+        {
+            Code.PrintString(Register.X0);
+        }
+        else if (value.Type == StackObject.StackObjectType.Float)
+        {
+            Code.PrintFloat();
+        }
+        else if (value.Type == StackObject.StackObjectType.Bool)
+        {
+            Code.PrintBool(Register.X0);
+        }
 
-
-      isFirst = false;
+        isFirst = false;
     }
 
     // Imprimir salto de línea al final
@@ -181,9 +181,10 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
     Code.Mov("w0", 10);  // \n
     Code.Push("x0");
     Code.PrintString(Register.SP);
-
+    Code.Add(Register.SP, Register.SP, 8); // Restaurar el stack pointer después de imprimir el salto de línea
+    
     return null;
-  }
+}
 
   public override Object? VisitIdentifier(LanguageParser.IdentifierContext context)
   {
@@ -490,7 +491,7 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
       if (!isLeftDecimal) Code.Scvtf(Register.D1, Register.X1); // Convert left to float
       if (!isRightDecimal) Code.Scvtf(Register.D0, Register.X0); // Convert right to float
 
-      Code.Fcmp(Register.D0, Register.D1); // Compare left and right operands
+      Code.Fcmp(Register.D1, Register.D0); // Compare left and right operands
       var relationalTrueLabel = Code.GetLabel();
       var relationalEndLabel = Code.GetLabel();
 
@@ -632,14 +633,92 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
 
 
   public override Object? VisitLogical(LanguageParser.LogicalContext context)
-  {
-    return null;
-  }
+{
+    Code.Comment("Logical operation: " + context.op.Text);
+    var operation = context.op.Text;
 
-  public override Object? VisitNot(LanguageParser.NotContext context)
-  {
+    if (operation == "&&")
+    {
+        // Evaluar operando izquierdo
+        Code.Comment("Starting AND operation");
+        string FalseLabel = Code.GetLabel();
+        string EndLabel = Code.GetLabel();
+
+        Visit(context.expr(0)); // Visit left operand; top -> [left]
+        var left = Code.PopObject(Register.X0); // Pop left operand; top -> []
+
+        Code.Cmp(Register.X0, 0); // Compare left operand with 0
+        Code.Comment($"Saltar a etiqueta {FalseLabel} si exp(0) es falso ");
+        Code.Beq(FalseLabel); // If left operand is false, jump to FalseLabel
+
+        Visit(context.expr(1)); // Visit right operand; top -> [right]
+        var right = Code.PopObject(Register.X0); // Pop right operand; top -> []
+
+        Code.Cmp(Register.X0, 0); // Compare right operand with 0
+        Code.Beq(FalseLabel); // If right operand is false, jump to FalseLabel
+        
+        Code.Mov(Register.X0, 1); // Si llegamos aquí, ambos son verdaderos
+        Code.B(EndLabel);
+
+        Code.Comment($"Saltar a etiquetra {FalseLabel} si exp(0) es falso");
+        Code.SetLabel(FalseLabel); // Set FalseLabel
+        Code.Mov(Register.X0, 0); // Push false
+
+        Code.Comment($"Saltar a etiqueta {EndLabel} ");
+        Code.SetLabel(EndLabel); // Set EndLabel
+        Code.Push(Register.X0); // Push result; top -> [result]
+        Code.PushObject(Code.BoolObject()); // Push the boolean object
+    }
+    else if (operation == "||")
+    {
+        // Similar implementación para OR
+        string TrueLabel = Code.GetLabel();
+        string EndLabel = Code.GetLabel();
+
+        Visit(context.expr(0));
+        var left = Code.PopObject(Register.X0);
+
+        Code.Cmp(Register.X0, 0);
+        Code.Comment($"Saltar a etiqueta {TrueLabel} si exp(0) es verdadero");
+        Code.Bne(TrueLabel);
+
+        Visit(context.expr(1));
+        var right = Code.PopObject(Register.X0);
+
+        Code.Cmp(Register.X0, 0);
+        Code.Bne(TrueLabel);
+
+        Code.Mov(Register.X0, 0); // Si llegamos aquí, ambos son falsos
+        Code.B(EndLabel);
+
+        Code.SetLabel(TrueLabel);
+        Code.Mov(Register.X0, 1);
+
+        Code.SetLabel(EndLabel);
+        Code.Push(Register.X0);
+        Code.PushObject(Code.BoolObject());
+    }
+
     return null;
-  }
+}
+
+public override Object? VisitNot(LanguageParser.NotContext context)
+{
+    Code.Comment("Logical NOT operation");
+    
+    // Evaluar la expresión
+    Visit(context.expr());
+    var expr = Code.PopObject(Register.X0);
+
+    // Invertir el valor usando XOR con 1
+    Code.instructions.Add($"EOR {Register.X0}, {Register.X0}, #1");
+    Code.Push(Register.X0);
+    
+    // Mantener el tipo booleano
+    Code.PushObject(Code.BoolObject());
+
+    return null;
+}
 
   public override Object? VisitIfStmt(LanguageParser.IfStmtContext context)
   {

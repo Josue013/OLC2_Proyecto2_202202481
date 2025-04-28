@@ -314,12 +314,13 @@ print_bool:
     stp x29, x30, [sp, #-16]!
     stp x19, x20, [sp, #-16]!
     
-    // Save the value
-    mov x19, x0
+    // Save and normalize the value
+    // Asegurarse que cualquier valor no-cero sea tratado como true
+    cmp x0, #0
+    cset x19, ne    // Set x19 to 1 if x0 != 0, otherwise 0
     
     // Compare with 0
-    cmp x19, #0
-    beq print_false
+    cbz x19, print_false
     
     // Print 'true'
     mov x0, #1

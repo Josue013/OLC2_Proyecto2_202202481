@@ -109,11 +109,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/media/josue/Elements/bato/p/OLC2_Proyecto2_202202481/api/api.csproj",
+      "projectUniqueName": "/media/josue/Elements/bato/p/OLC2_Proyecto2_202202481___1/api/api.csproj",
       "projectName": "api",
-      "projectPath": "/media/josue/Elements/bato/p/OLC2_Proyecto2_202202481/api/api.csproj",
+      "projectPath": "/media/josue/Elements/bato/p/OLC2_Proyecto2_202202481___1/api/api.csproj",
       "packagesPath": "/home/josue/.nuget/packages/",
-      "outputPath": "/media/josue/Elements/bato/p/OLC2_Proyecto2_202202481/api/obj/",
+      "outputPath": "/media/josue/Elements/bato/p/OLC2_Proyecto2_202202481___1/api/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/home/josue/.nuget/NuGet/NuGet.Config"

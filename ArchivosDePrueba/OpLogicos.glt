@@ -1,0 +1,46 @@
+// Ejemplo de operadores Lógicos
+var a bool = true
+var b bool = true
+
+fmt.Println("*************************")
+fmt.Println("**** a=true y b=true ****")
+fmt.Println("*************************")
+fmt.Println("a && b: ", a && b) // True
+fmt.Println("a || b: ", a || b) // True
+fmt.Println("!a: ", !a)     // False
+fmt.Println("*************************\n")
+
+var a1 bool = true
+var b1 bool = false
+
+fmt.Println("**************************")
+fmt.Println("**** a=true y b=false ****")
+fmt.Println("**************************")
+fmt.Println("a && b: ", a1 && b1) // False
+fmt.Println("a || b: ", a1 || b1) // True
+fmt.Println("!a: ", !a1)    // False
+fmt.Println("**************************\n")
+
+var a2 bool = false
+var b2 bool = true
+
+fmt.Println("**************************")
+fmt.Println("**** a=false y b=true ****")
+fmt.Println("**************************")
+fmt.Println("a && b: ", a2 && b2) // False
+fmt.Println("a || b: ", a2 || b2) // True
+fmt.Println("!a: ", !a2)    // True
+fmt.Println("**************************\n")
+
+var a3 bool = false
+var b3 bool = false
+
+fmt.Println("**************************")
+fmt.Println("**** a=false y b=false ****")
+fmt.Println("**************************")
+fmt.Println("a && b: ", a3 && b3) // False
+fmt.Println("a || b: ", a3 || b3) // False
+fmt.Println("!a: ", !a3)    // True
+fmt.Println("**************************\n")
+
+
