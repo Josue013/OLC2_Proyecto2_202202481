@@ -29,14 +29,47 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
 
   public override Object? VisitVarDcl(LanguageParser.VarDclContext context)
   {
-
     var varName = context.ID().GetText();
     string type = context.type().GetText();
     Code.Comment("Variable declaration: " + varName + " of type " + type);
 
-    Visit(context.expr());
-    Code.TagObject(varName);
+    if (context.expr() == null)
+    {
+      // Si no hay expresión, usar valor por defecto según el tipo
+      var defaultObj = type switch
+      {
+        "int" => Code.IntObject(),
+        "float64" => Code.FloatObject(),
+        "string" => Code.StringObject(),
+        "bool" => Code.IntObject(), // bool se maneja como int (0=false, 1=true)
+        _ => throw new Exception($"Tipo no soportado: {type}")
+      };
 
+      // Generar el valor por defecto
+      Code.Comment("Default value");
+      switch (type)
+      {
+        case "int":
+          Code.PushConstant(defaultObj, 0);
+          break;
+        case "float64":
+          Code.PushConstant(defaultObj, 0.0);
+          break;
+        case "string":
+          Code.PushConstant(defaultObj, "");
+          break;
+        case "bool":
+          Code.PushConstant(defaultObj, 0); // false
+          break;
+      }
+    }
+    else
+    {
+      // Si hay expresión, evaluarla normalmente
+      Visit(context.expr());
+    }
+
+    Code.TagObject(varName);
     return null;
   }
 
@@ -95,24 +128,50 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
 
   public override Object? VisitPrintStmt(LanguageParser.PrintStmtContext context)
   {
-
     Code.Comment("Print statement");
-    Code.Comment("Visiting expression list");
-    Visit(context.exprList());
+    bool isFirst = true;
 
-    Code.Comment("Popping value to print");
-    var value = Code.PopObject(Register.X0); // Pop the value to print
+    // Visitar cada expresión en la lista
+    foreach (var expr in context.exprList().expr())
+    {
+      // Si no es el primer elemento, imprimir un espacio
+      if (!isFirst)
+      {
+        Code.Comment("Print space between values");
+        Code.Mov("w0", 32);
+        Code.Push("x0");
+        Code.PrintString(Register.SP);
+      }
 
-    if (value.Type == StackObject.StackObjectType.Int)
-    {
-      Code.PrintInteger(Register.X0); // Call print_integer function
-    } else if (value.Type == StackObject.StackObjectType.String)
-    {
-      Code.PrintString(Register.X0); // Call print_string function
-      Code.Mov("w0", 10);  // (\n)
-      Code.Push("x0");
-      Code.PrintString(Register.SP);
+      Code.Comment("Visiting expression");
+      Visit(expr);
+
+      Code.Comment("Popping value to print");
+      var isDouble = Code.TopObject().Type == StackObject.StackObjectType.Float;
+      var value = Code.PopObject(isDouble ? Register.D0 : Register.X0);
+
+      // Imprimir según el tipo
+      if (value.Type == StackObject.StackObjectType.Int)
+      {
+        Code.PrintInteger(Register.X0);
+      }
+      else if (value.Type == StackObject.StackObjectType.String)
+      {
+        Code.PrintString(Register.X0);
+      }
+      else if (value.Type == StackObject.StackObjectType.Float)
+      {
+        Code.PrintFloat();
+      }
+
+      isFirst = false;
     }
+
+    // Imprimir salto de línea al final
+    Code.Comment("Print newline");
+    Code.Mov("w0", 10);  // \n
+    Code.Push("x0");
+    Code.PrintString(Register.SP);
 
     return null;
   }
@@ -140,7 +199,7 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
 
   public override Object? VisitParens(LanguageParser.ParensContext context)
   {
-    return null;
+    return Visit(context.expr());
   }
 
   public override Object? VisitNegate(LanguageParser.NegateContext context)
@@ -161,6 +220,13 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
 
   public override Object? VisitDecimal(LanguageParser.DecimalContext context)
   {
+
+    var value = context.DECIMAL().GetText();
+    Code.Comment("Decimal constant: " + value);
+    var floatObjet = Code.FloatObject();
+    Code.PushConstant(floatObjet, double.Parse(value));
+
+
     return null;
   }
 
@@ -231,20 +297,45 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
     Visit(context.expr(1)); // Visit 1; top -> [1]
 
     Code.Comment("Popping operands");
-    Code.Pop(Register.X1); // Pop 2; top -> [1]
-    Code.Pop(Register.X0); // Pop 1; top -> []
+    var isRightDecimal = Code.TopObject().Type == StackObject.StackObjectType.Float;
+    var right = Code.PopObject(isRightDecimal ? Register.D0 : Register.X0); // Pop 2; top -> [1]
+    var isLeftDecimal = Code.TopObject().Type == StackObject.StackObjectType.Float;
+    var left = Code.PopObject(isLeftDecimal ? Register.D1 : Register.X1); // Pop 1; top -> []
+
+    if (isLeftDecimal || isRightDecimal)
+    {
+      if (!isLeftDecimal) Code.Scvtf(Register.D1, Register.X1); // Convert left to float
+      if (!isRightDecimal) Code.Scvtf(Register.D0, Register.X0); // Convert right to float
+
+      if (operation == "*")
+      {
+        Code.Fmul(Register.D0, Register.D0, Register.D1); // D0 = D0 + D1
+      }
+      else if (operation == "/")
+      {
+        Code.Fdiv(Register.D0, Register.D1, Register.D0); // D0 = D1 - D0
+      }
+
+      Code.Comment("Pushing result");
+      Code.Push(Register.D0); // Push result; top -> [result]
+      Code.PushObject(Code.CloneObject(
+        isLeftDecimal ? left : right // Push the object to the stack
+      ));
+      return null;
+    }
 
     if (operation == "*")
     {
-      Code.Mul(Register.X0, Register.X0, Register.X1); // X0 = X0 * X1
+      Code.Mul(Register.X0, Register.X1, Register.X0); // X0 = X0 * X1
     }
     else if (operation == "/")
     {
-      Code.Div(Register.X0, Register.X0, Register.X1); // X0 = X0 / X1
+      Code.Div(Register.X0, Register.X1, Register.X0); // X0 = X0 / X1
     }
 
     Code.Comment("Pushing result");
     Code.Push(Register.X0); // Push result; top -> [result]
+    Code.PushObject(Code.CloneObject(left));
 
     return null;
   }
@@ -263,8 +354,32 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
     Visit(context.expr(1)); // Visit 1; top -> [1]
 
     Code.Comment("Popping operands");
-    var right = Code.PopObject(Register.X1); // Pop 2; top -> [1]
-    var left = Code.PopObject(Register.X0); // Pop 1; top -> []
+    var isRightDecimal = Code.TopObject().Type == StackObject.StackObjectType.Float;
+    var right = Code.PopObject(isRightDecimal ? Register.D0 : Register.X0); // Pop 2; top -> [1]
+    var isLeftDecimal = Code.TopObject().Type == StackObject.StackObjectType.Float;
+    var left = Code.PopObject(isLeftDecimal ? Register.D1 : Register.X1); // Pop 1; top -> []
+
+    if (isLeftDecimal || isRightDecimal)
+    {
+      if (!isLeftDecimal) Code.Scvtf(Register.D1, Register.X1); // Convert left to float
+      if (!isRightDecimal) Code.Scvtf(Register.D0, Register.X0); // Convert right to float
+
+      if (operation == "+")
+      {
+        Code.Fadd(Register.D0, Register.D0, Register.D1); // D0 = D0 + D1
+      }
+      else if (operation == "-")
+      {
+        Code.Fsub(Register.D0, Register.D1, Register.D0); // D0 = D1 - D0
+      }
+
+      Code.Comment("Pushing result");
+      Code.Push(Register.D0); // Push result; top -> [result]
+      Code.PushObject(Code.CloneObject(
+        isLeftDecimal ? left : right // Push the object to the stack
+      ));
+      return null;
+    }
 
     if (operation == "+")
     {
@@ -272,7 +387,7 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
     }
     else if (operation == "-")
     {
-      Code.Sub(Register.X0, Register.X0, Register.X1); // X0 = X0 - X1
+      Code.Sub(Register.X0, Register.X1, Register.X0); // X0 = X0 - X1
     }
 
     Code.Comment("Pushing result");

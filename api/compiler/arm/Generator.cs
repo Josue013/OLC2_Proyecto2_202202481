@@ -18,6 +18,12 @@ public class ArmGenerator
   private int depth = 0;
 
   // ---------------- Stack Operations ----------------
+
+  public StackObject TopObject()
+  {
+    return stack.Last();
+  }
+
   public void PushObject(StackObject obj)
   {
     stack.Add(obj);
@@ -32,7 +38,23 @@ public class ArmGenerator
         Push(Register.X0);
         break;
       case StackObject.StackObjectType.Float:
-        // TODO: Implement float push
+        long floatBits = BitConverter.DoubleToInt64Bits((double)value);
+
+        short[] floatParts = new short[4];
+        for (int i = 0; i < 4; i++)
+        {
+          floatParts[i] = (short)((floatBits >> (i * 16)) & 0xFFFF);
+        }
+
+        instructions.Add($"MOVZ X0, #{floatParts[0]}, LSL #0");
+        for (int i = 1; i < 4; i++)
+        {
+          instructions.Add($"MOVK X0, #{floatParts[i]}, LSL #{16 * i}");
+        }
+
+        Push(Register.X0);
+
+
         break;
       case StackObject.StackObjectType.String:
         List<byte> stringArray = Utils.StringTo1ByteArray((string)value);
@@ -222,6 +244,40 @@ public class ArmGenerator
     instructions.Add($"LDR {rd}, [SP], #8");
   }
 
+  // Float Operations 
+
+  public void Scvtf(string rd, string rs)
+  {
+    instructions.Add($"SCVTF {rd}, {rs}");
+  }
+
+  public void Fmov(string rd, string rs)
+  {
+    instructions.Add($"FMOV {rd}, {rs}");
+  }
+
+  public void Fadd(string rd, string rn, string rm)
+  {
+    instructions.Add($"FADD {rd}, {rn}, {rm}");
+  }
+
+  public void Fsub(string rd, string rn, string rm)
+  {
+    instructions.Add($"FSUB {rd}, {rn}, {rm}");
+  }
+
+  public void Fmul(string rd, string rn, string rm)
+  {
+    instructions.Add($"FMUL {rd}, {rn}, {rm}");
+  }
+
+  public void Fdiv(string rd, string rn, string rm)
+  {
+    instructions.Add($"FDIV {rd}, {rn}, {rm}");
+  }
+
+
+
   // Svc Instruction
   public void Svc()
   {
@@ -248,6 +304,14 @@ public class ArmGenerator
     stdLib.Use("print_string");
     instructions.Add($"MOV X0, {rs}");
     instructions.Add($"BL print_string");
+  }
+
+  public void PrintFloat()
+  {
+    stdLib.Use("print_integer");
+    stdLib.Use("print_double");
+    instructions.Add("BL print_double");
+
   }
 
   // Comments

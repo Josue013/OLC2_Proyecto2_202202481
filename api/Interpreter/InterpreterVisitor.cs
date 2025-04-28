@@ -97,6 +97,23 @@ public class InterpreterVisitor : LanguageBaseVisitor<ValueWrapper>
         }
     }
 
+    public override ValueWrapper VisitVarDcl2(LanguageParser.VarDcl2Context context)
+    {
+        string id = context.ID().GetText();
+        ValueWrapper value = Visit(context.expr());
+
+        if (currentEnvironment.variables.ContainsKey(id))
+        {
+            throw new Exception("Error: La variable " + id + " ya ha sido declarada.");
+        }
+
+        // Añadir Variable a la tabla de Simbolos
+        simbolos.AddSymbol(new Symbol(id, "Variable", value.GetType().Name, context.Start.Line, context.Start.Column));
+        currentEnvironment.DeclareVariable(id, value, context.Start.Line, context.Start.Column);
+        
+        return defaultValue;
+    }
+
     // Valores por defecto
     public ValueWrapper ValorPorDefecto(string type)
     {
@@ -131,7 +148,7 @@ public class InterpreterVisitor : LanguageBaseVisitor<ValueWrapper>
                 {
                     //if (currentEnvironment.variables.ContainsKey(id))
                     //{
-                      //  throw new Exception("Error: La variable " + id + " ya ha sido declarada.");
+                    //  throw new Exception("Error: La variable " + id + " ya ha sido declarada.");
                     //}
                     //currentEnvironment.DeclareVariable(id, value, context.Start.Line, context.Start.Column);
                 }

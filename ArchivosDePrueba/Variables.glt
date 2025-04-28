@@ -1,0 +1,43 @@
+// Correcto, declaración sin valor inicial
+var valor int
+// Correcto, declaración de una variable tipo int con valor
+var valor1 int = 10
+// noInicializada tomará el valor por defecto de un int, que es 0
+var noinicializada int
+// Error: No se puede asignar un float64 a un int
+// var tipoincorrecto int = 10.01
+// Correcto, declaración de una variable tipo float64 con valor
+var valor2 float64 = 10.2
+//Correcto, las operaciones aritméticas de enteros se convierten a float64 implícitamente
+var valor2_1 float64 = 10 + 1
+// Correcto, declaración de una variable tipo string usando inferencia
+valor3 := "esto es una variable"
+// Correcto, declaración de una variable tipo rune
+var caracter rune = 'A'
+// Correcto, declaración de una variable tipo bool
+var valor4 bool = true
+// Error: No se puede asignar un valor bool a una variable de tipo string
+// var valor4 string = true
+// Error: No se puede redefinir una variable existente en el mismo ámbito
+// var valor3 int = 10
+// Correcto: Es posible declarar una variable con el mismo nombre en un nuevo bloque
+{
+valor3 := "redefiniendo variable con un tipo distinto"
+fmt.Println(valor3) // Imprime "redefiniendo variable con un tipo distinto"
+}
+
+// Error: .58 no es un nombre válido para una variable
+// var .58 int = 4
+// Error: "if" es una palabra reservada
+// var if string = "10"
+// Ejemplo de asignaciones
+// Correcto, se puede reasignar un nuevo valor del mismo tipo
+valor1 = 200
+// Correcto, se puede reasignar un nuevo valor del mismo tipo
+valor3 = "otra cadena"
+// Error: No se puede asignar un int a una variable de tipo bool
+// valor4 = 10
+// Correcto, asignación de un int a un float
+valor2 = 200
+// Error: No se puede asignar un string a una variable de tipo rune
+// caracter = "otra cadena"

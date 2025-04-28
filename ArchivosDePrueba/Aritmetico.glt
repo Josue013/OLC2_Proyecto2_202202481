@@ -1,15 +1,34 @@
-
+// Operaciones con Enteros
+fmt.Println("=== Operaciones con Enteros ===")
 // Suma Enteros
-fmt.Println(10+2)
-
+fmt.Println("Suma:", 10+2)
 // Resta Enteros
-fmt.Println(10-2)
-
+fmt.Println("Resta:", 10-2)
 // Multiplicacion Enteros
-fmt.Println(10*2)
-
+fmt.Println("Multiplicación:", 10*2)
 // Division Enteros
-fmt.Println(10/2)
+fmt.Println("División:", 10/2)
+// Modulos Enteros
+fmt.Println("Módulo:", 10%2)
 
-// Modulos
-fmt.Println(10%2)
+// Operaciones con Decimales
+fmt.Println("\n=== Operaciones con Decimales ===")
+// Suma Decimales
+fmt.Println("Suma:", 10.5+2.5)
+// Resta Decimales
+fmt.Println("Resta:", 10.5-2.5)
+// Multiplicacion Decimales
+fmt.Println("Multiplicación:", 10.5*2.5)
+// Division Decimales
+fmt.Println("División:", 10.5/2.5)
+
+// Operaciones Mixtas (Enteros con Decimales)
+fmt.Println("\n=== Operaciones Mixtas ===")
+// Suma Mixta
+fmt.Println("Suma:", 10+2.5)
+// Resta Mixta
+fmt.Println("Resta:", 10.5-2)
+// Multiplicacion Mixta
+fmt.Println("Multiplicación:", 10*2.5)
+// Division Mixta
+fmt.Println("División:", 10.0/2)
