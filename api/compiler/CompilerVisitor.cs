@@ -163,6 +163,11 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
       {
         Code.PrintFloat();
       }
+      else if (value.Type == StackObject.StackObjectType.Bool)
+      {
+        Code.PrintBool(Register.X0);
+      }
+
 
       isFirst = false;
     }
@@ -203,7 +208,7 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
   }
 
   public override Object? VisitNegate(LanguageParser.NegateContext context)
-{
+  {
     Code.Comment("Negate operation");
     Visit(context.expr());
 
@@ -212,24 +217,24 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
 
     if (isDecimal)
     {
-        // Para números decimales, usar instrucción FNEG
-        Code.Comment("Negating decimal value");
-        Code.instructions.Add($"FNEG {Register.D0}, {Register.D0}");
-        Code.Push(Register.D0);
+      // Para números decimales, usar instrucción FNEG
+      Code.Comment("Negating decimal value");
+      Code.instructions.Add($"FNEG {Register.D0}, {Register.D0}");
+      Code.Push(Register.D0);
     }
-    else 
+    else
     {
-        // Para enteros, usar instrucción NEG
-        Code.Comment("Negating integer value");
-        Code.instructions.Add($"NEG {Register.X0}, {Register.X0}");
-        Code.Push(Register.X0);
+      // Para enteros, usar instrucción NEG
+      Code.Comment("Negating integer value");
+      Code.instructions.Add($"NEG {Register.X0}, {Register.X0}");
+      Code.Push(Register.X0);
     }
 
     // Mantener el tipo del objeto
     Code.PushObject(Code.CloneObject(value));
 
     return null;
-}
+  }
 
   public override Object? VisitInt(LanguageParser.IntContext context)
   {
@@ -256,6 +261,10 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
 
   public override Object? VisitBool(LanguageParser.BoolContext context)
   {
+    var value = context.BOOL().GetText();
+    Code.Comment("Boolean constant: " + value);
+    var BoolObject = Code.BoolObject();
+    Code.PushConstant(BoolObject, value == "true" ? true : false);
     return null;
   }
 
@@ -460,13 +469,129 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
 
   public override Object? VisitRelational(LanguageParser.RelationalContext context)
   {
+    Code.Comment("Relational operation");
+    var operation = context.op.Text;
+    Visit(context.expr(0)); // Visit left operand; top -> [left]
+    Visit(context.expr(1)); // Visit right operand; top -> [right, left]
+
+    Code.Comment("Popping operands");
+    var isRightDecimal = Code.TopObject().Type == StackObject.StackObjectType.Float;
+    var right = Code.PopObject(isRightDecimal ? Register.D0 : Register.X0); // Pop right operand; top -> [left]
+    var isLeftDecimal = Code.TopObject().Type == StackObject.StackObjectType.Float;
+    var left = Code.PopObject(isLeftDecimal ? Register.D1 : Register.X1); // Pop left operand; top -> []
+
+    if (isLeftDecimal || isRightDecimal)
+    {
+      // TODO:
+
+      Code.Comment("Comparing decimal values");
+      if (!isLeftDecimal) Code.Scvtf(Register.D1, Register.X1); // Convert left to float
+      if (!isRightDecimal) Code.Scvtf(Register.D0, Register.X0); // Convert right to float
+
+      Code.Fcmp(Register.D0, Register.D1); // Compare left and right operands
+      var relationalTrueLabel = Code.GetLabel();
+      var relationalEndLabel = Code.GetLabel();
+
+      /*
+        fcmp d0, d1
+        [beq] [bne] [blt] [bgt] [ble] [bge] -> trueLabel
+        push 0
+        b end
+        trueLabel:
+        push 1
+        end:
+      */
+
+      switch (operation)
+      {
+        case "<":
+          Code.Blt(relationalTrueLabel);
+          break;
+        case "<=":
+          Code.Ble(relationalTrueLabel);
+          break;
+        case ">":
+          Code.Bgt(relationalTrueLabel);
+          break;
+        case ">=":
+          Code.Bge(relationalTrueLabel);
+          break;
+        case "==":
+          Code.Beq(relationalTrueLabel);
+          break;
+        case "!=":
+          Code.Bne(relationalTrueLabel);
+          break;
+        default:
+          throw new Exception($"Operador relacional no soportado: {operation}");
+      }
+
+      Code.Mov(Register.X0, 0); // Push falso
+      Code.Push(Register.X0); // Push result; top -> [result]
+      Code.B(relationalEndLabel); // Jump to end
+      Code.SetLabel(relationalTrueLabel); // Set true label
+      Code.Mov(Register.X0, 1); // Push verdadero
+      Code.Push(Register.X0); // Push result; top -> [result]
+      Code.SetLabel(relationalEndLabel); // Set end label
+
+      Code.PushObject(Code.BoolObject()); // Push the boolean object
+
+      return null;
+    }
+
+    Code.Cmp(Register.X1, Register.X0); // Compare left and right operands
+    var trueLabel = Code.GetLabel();
+    var endLabel = Code.GetLabel();
+
+    /* 
+      cmp x1, x0
+      [beq] [bne] [blt] [bgt] [ble] [bge] -> trueLabel
+      push 0
+      b end
+      trueLabel:
+      push 1
+      end:
+    */
+
+    switch (operation)
+    {
+      case "<":
+        Code.Blt(trueLabel);
+        break;
+      case "<=":
+        Code.Ble(trueLabel);
+        break;
+      case ">":
+        Code.Bgt(trueLabel);
+        break;
+      case ">=":
+        Code.Bge(trueLabel);
+        break;
+      case "==":
+        Code.Beq(trueLabel);
+        break;
+      case "!=":
+        Code.Bne(trueLabel);
+        break;
+      default:
+        throw new Exception($"Operador relacional no soportado: {operation}");
+    }
+
+    Code.Mov(Register.X0, 0); // Push falso
+    Code.Push(Register.X0); // Push result; top -> [result]
+    Code.B(endLabel); // Jump to end
+    Code.SetLabel(trueLabel); // Set true label
+    Code.Mov(Register.X0, 1); // Push verdadero
+    Code.Push(Register.X0); // Push result; top -> [result]
+    Code.SetLabel(endLabel); // Set end label
+
+    Code.PushObject(Code.BoolObject()); // Push the boolean object
+
+
     return null;
   }
 
-  public override Object? VisitComparison(LanguageParser.ComparisonContext context)
-  {
-    return null;
-  }
+
 
   public override Object? VisitLogical(LanguageParser.LogicalContext context)
   {

@@ -1644,17 +1644,6 @@ public class LanguageParser extends Parser {
 		public BoolContext(ExprContext ctx) { copyFrom(ctx); }
 	}
 	@SuppressWarnings("CheckReturnValue")
-	public static class ComparisonContext extends ExprContext {
-		public Token op;
-		public List<ExprContext> expr() {
-			return getRuleContexts(ExprContext.class);
-		}
-		public ExprContext expr(int i) {
-			return getRuleContext(ExprContext.class,i);
-		}
-		public ComparisonContext(ExprContext ctx) { copyFrom(ctx); }
-	}
-	@SuppressWarnings("CheckReturnValue")
 	public static class TypeOfCallContext extends ExprContext {
 		public CallEmbebidaContext callEmbebida() {
 			return getRuleContext(CallEmbebidaContext.class,0);
@@ -2242,24 +2231,24 @@ public class LanguageParser extends Parser {
 						break;
 					case 8:
 						{
-						_localctx = new ComparisonContext(new ExprContext(_parentctx, _parentState));
+						_localctx = new RelationalContext(new ExprContext(_parentctx, _parentState));
 						pushNewRecursionContext(_localctx, _startState, RULE_expr);
 						setState(366);
 						if (!(precpred(_ctx, 15))) throw new FailedPredicateException(this, "precpred(_ctx, 15)");
 						setState(367);
-						((ComparisonContext)_localctx).op = match(T__54);
+						((RelationalContext)_localctx).op = match(T__54);
 						setState(368);
 						expr(16);
 						}
 						break;
 					case 9:
 						{
-						_localctx = new ComparisonContext(new ExprContext(_parentctx, _parentState));
+						_localctx = new RelationalContext(new ExprContext(_parentctx, _parentState));
 						pushNewRecursionContext(_localctx, _startState, RULE_expr);
 						setState(369);
 						if (!(precpred(_ctx, 14))) throw new FailedPredicateException(this, "precpred(_ctx, 14)");
 						setState(370);
-						((ComparisonContext)_localctx).op = match(T__55);
+						((RelationalContext)_localctx).op = match(T__55);
 						setState(371);
 						expr(15);
 						}

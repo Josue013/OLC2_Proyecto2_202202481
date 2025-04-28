@@ -327,13 +327,6 @@ public interface ILanguageVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitBool([NotNull] LanguageParser.BoolContext context);
 	/// <summary>
-	/// Visit a parse tree produced by the <c>Comparison</c>
-	/// labeled alternative in <see cref="LanguageParser.expr"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	/// <return>The visitor result.</return>
-	Result VisitComparison([NotNull] LanguageParser.ComparisonContext context);
-	/// <summary>
 	/// Visit a parse tree produced by the <c>TypeOfCall</c>
 	/// labeled alternative in <see cref="LanguageParser.expr"/>.
 	/// </summary>

@@ -772,29 +772,7 @@ public class InterpreterVisitor : LanguageBaseVisitor<ValueWrapper>
                 // RuneValue <= RuneValue
                 (RuneValue l, RuneValue r, "<=") => new BoolValue(l.Value <= r.Value),
 
-                _ => throw new System.Exception("Operacion invalida")
-            };
-        }
-        catch (Exception ex)
-        {
-            System.Console.WriteLine(ex.Message);
-            errores.Add(new Errores("Semantico", ex.Message, context.Start.Line, context.Start.Column));
-            return defaultValue;
-        }
-    }
-
-    // VisitComparison
-    public override ValueWrapper VisitComparison(LanguageParser.ComparisonContext context)
-    {
-        ValueWrapper left = Visit(context.expr(0));
-        ValueWrapper right = Visit(context.expr(1));
-
-        var operador = context.op.Text;
-
-        try
-        {
-            return (left, right, operador) switch
-            {
+                // Comparacion
 
                 // ******** nil ********
                 // nil == nil
@@ -878,6 +856,9 @@ public class InterpreterVisitor : LanguageBaseVisitor<ValueWrapper>
             return defaultValue;
         }
     }
+
+    // VisitComparison
+    
 
     // VisitLogical
     public override ValueWrapper VisitLogical(LanguageParser.LogicalContext context)

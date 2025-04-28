@@ -109,8 +109,8 @@ expr:
 	| expr op = '>=' expr	# Relational
 
 	// comparison operations
-	| expr op = '==' expr	# Comparison
-	| expr op = '!=' expr	# Comparison
+	| expr op = '==' expr	# Relational
+	| expr op = '!=' expr	# Relational
 
 	// Logical operations
 	| expr op = ('&&' | '||') expr	# Logical

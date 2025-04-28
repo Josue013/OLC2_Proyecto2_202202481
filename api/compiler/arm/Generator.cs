@@ -2,7 +2,7 @@ using System.Text;
 
 public class StackObject
 {
-  public enum StackObjectType { Int, Float, String}
+  public enum StackObjectType { Int, Float, String, Bool}
   public StackObjectType Type { get; set; }
   public int Length { get; set; }
   public int Depth { get; set; }
@@ -16,6 +16,17 @@ public class ArmGenerator
   private readonly StandardLibrary stdLib = new StandardLibrary();
   private List<StackObject> stack = new List<StackObject>();
   private int depth = 0;
+  private int labelCounter = 0;
+
+  public string GetLabel()
+  {
+    return $"L{labelCounter++}";
+  }
+
+  public void SetLabel(string label)
+  {
+    instructions.Add($"{label}:");
+  }
 
   // ---------------- Stack Operations ----------------
 
@@ -35,6 +46,10 @@ public class ArmGenerator
     {
       case StackObject.StackObjectType.Int:
         Mov(Register.X0, (int)value);
+        Push(Register.X0);
+        break;
+      case StackObject.StackObjectType.Bool:
+        Mov(Register.X0, (bool)value ? 1 : 0);
         Push(Register.X0);
         break;
       case StackObject.StackObjectType.Float:
@@ -92,6 +107,17 @@ public class ArmGenerator
     return new StackObject
     {
       Type = StackObject.StackObjectType.Int,
+      Length = 8,
+      Depth = depth,
+      Id = null
+    };
+  }
+
+  public StackObject BoolObject()
+  {
+    return new StackObject
+    {
+      Type = StackObject.StackObjectType.Bool,
       Length = 8,
       Depth = depth,
       Id = null
@@ -272,6 +298,50 @@ public class ArmGenerator
     instructions.Add($"FDIV {rd}, {rn}, {rm}");
   }
 
+  public void Cmp(string rs1, string rs2)
+  {
+    instructions.Add($"CMP {rs1}, {rs2}");
+  }
+
+  public void Fcmp(string rs1, string rs2)
+  {
+    instructions.Add($"FCMP {rs1}, {rs2}");
+  }
+
+  public void Beq(string label)
+  {
+    instructions.Add($"BEQ {label}");
+  }
+
+  public void Bne(string label)
+  {
+    instructions.Add($"BNE {label}");
+  }
+
+  public void Bgt(string label)
+  {
+    instructions.Add($"BGT {label}");
+  }
+
+  public void Blt(string label)
+  {
+    instructions.Add($"BLT {label}");
+  }
+
+  public void Bge(string label)
+  {
+    instructions.Add($"BGE {label}");
+  }
+
+  public void Ble(string label)
+  {
+    instructions.Add($"BLE {label}");
+  }
+
+  public void B(string label)
+  {
+    instructions.Add($"B {label}");
+  }
 
 
   // Svc Instruction
@@ -307,8 +377,14 @@ public class ArmGenerator
     stdLib.Use("print_integer");
     stdLib.Use("print_double");
     instructions.Add("BL print_double");
-
   }
+
+  public void PrintBool(string rs)
+{
+    stdLib.Use("print_bool");
+    instructions.Add($"MOV X0, {rs}");
+    instructions.Add($"BL print_bool");
+}
 
   // Comments
   public void Comment(string comment)

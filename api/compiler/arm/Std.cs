@@ -17,6 +17,10 @@ public class StandardLibrary
         {
             UsedSymbols.Add("dot_char");
             UsedSymbols.Add("zero_char");
+        } else if (function == "print_bool")
+        {
+            UsedSymbols.Add("true_str");
+            UsedSymbols.Add("false_str");
         }
     }
 
@@ -297,12 +301,57 @@ exit_function:
     ldp x29, x30, [sp], #16
     ret
     "},
+    {
+        "print_bool", @"
+//--------------------------------------------------------------
+// print_bool - Prints a boolean value to stdout
+//
+// Input:
+//   x0 - The boolean value to print (0=false, 1=true)
+//--------------------------------------------------------------
+print_bool:
+    // Save registers
+    stp x29, x30, [sp, #-16]!
+    stp x19, x20, [sp, #-16]!
+    
+    // Save the value
+    mov x19, x0
+    
+    // Compare with 0
+    cmp x19, #0
+    beq print_false
+    
+    // Print 'true'
+    mov x0, #1
+    adr x1, true_str
+    mov x2, #4
+    mov x8, #64
+    svc #0
+    b print_bool_done
+    
+print_false:
+    // Print 'false'
+    mov x0, #1
+    adr x1, false_str
+    mov x2, #5
+    mov x8, #64
+    svc #0
+    
+print_bool_done:
+    // Restore registers
+    ldp x19, x20, [sp], #16
+    ldp x29, x30, [sp], #16
+    ret
+"
+    }
     };
 
     private readonly static Dictionary<string, string> Symbols = new Dictionary<string, string>
     {
         { "minus_sign", @"minus_sign: .ascii ""-""" },
         { "dot_char", @"dot_char: .ascii "".""" },
-        { "zero_char", @"zero_char: .ascii ""0""" }
+        { "zero_char", @"zero_char: .ascii ""0""" },
+        { "true_str", @"true_str: .ascii ""true""" },
+        { "false_str", @"false_str: .ascii ""false""" }
     };
 }

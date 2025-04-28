@@ -1,0 +1,27 @@
+// Pruebas de operadores relacionales
+
+// === Comparaciones entre enteros ===
+fmt.Println("=== Comparaciones entre enteros ===")
+fmt.Println("1 == 1:", 1 == 1)      // true
+fmt.Println("1 != 1:", 1 != 1)      // false
+
+// === Comparaciones entre decimales ===
+fmt.Println("\n=== Comparaciones entre decimales ===")
+fmt.Println("13.0 == 13.0:", 13.0 == 13.0)        // true
+fmt.Println("0.001 != 0.001:", 0.001 != 0.001)    // false
+
+// === Comparaciones mixtas (enteros y decimales) ===
+fmt.Println("\n=== Comparaciones mixtas ===")
+fmt.Println("35 == 35.0:", 35 == 35.0)            // true
+fmt.Println("98.0 == 98:", 98.0 == 98)            // true
+fmt.Println("95.5 == 95:", 95.5 == 95)            // false
+
+// === Comparaciones entre booleanos ===
+fmt.Println("\n=== Comparaciones entre booleanos ===")
+fmt.Println("true == false:", true == false)       // false
+fmt.Println("false != true:", false != true)       // true
+
+// === Comparaciones entre cadenas ===
+fmt.Println("\n=== Comparaciones entre cadenas ===")
+fmt.Println("\"ho\" == \"Ha\":", "ho" == "Ha")     // false
+fmt.Println("\"Ho\" != \"Ho\":", "Ho" != "Ho")     // false

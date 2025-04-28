@@ -532,18 +532,6 @@ public interface ILanguageListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitBool([NotNull] LanguageParser.BoolContext context);
 	/// <summary>
-	/// Enter a parse tree produced by the <c>Comparison</c>
-	/// labeled alternative in <see cref="LanguageParser.expr"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void EnterComparison([NotNull] LanguageParser.ComparisonContext context);
-	/// <summary>
-	/// Exit a parse tree produced by the <c>Comparison</c>
-	/// labeled alternative in <see cref="LanguageParser.expr"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void ExitComparison([NotNull] LanguageParser.ComparisonContext context);
-	/// <summary>
 	/// Enter a parse tree produced by the <c>TypeOfCall</c>
 	/// labeled alternative in <see cref="LanguageParser.expr"/>.
 	/// </summary>

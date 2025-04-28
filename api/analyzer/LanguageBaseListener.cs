@@ -625,20 +625,6 @@ public partial class LanguageBaseListener : ILanguageListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitBool([NotNull] LanguageParser.BoolContext context) { }
 	/// <summary>
-	/// Enter a parse tree produced by the <c>Comparison</c>
-	/// labeled alternative in <see cref="LanguageParser.expr"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void EnterComparison([NotNull] LanguageParser.ComparisonContext context) { }
-	/// <summary>
-	/// Exit a parse tree produced by the <c>Comparison</c>
-	/// labeled alternative in <see cref="LanguageParser.expr"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void ExitComparison([NotNull] LanguageParser.ComparisonContext context) { }
-	/// <summary>
 	/// Enter a parse tree produced by the <c>TypeOfCall</c>
 	/// labeled alternative in <see cref="LanguageParser.expr"/>.
 	/// <para>The default implementation does nothing.</para>
