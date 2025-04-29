@@ -45,7 +45,7 @@ stmt:
 	| 'return' expr?									# ReturnStmt
 	;
 
-forInit: varDcl | expr;
+forInit: varDcl | varDcl2 | expr;
 
 incdec: ID op= ('++' | '--')
 ;

@@ -2,7 +2,7 @@ using System.Text;
 
 public class StackObject
 {
-  public enum StackObjectType { Int, Float, String, Bool, Rune, Nil}
+  public enum StackObjectType { Int, Float, String, Bool, Rune, Nil }
   public StackObjectType Type { get; set; }
   public int Length { get; set; }
   public int Depth { get; set; }
@@ -53,51 +53,51 @@ public class ArmGenerator
         Push(Register.X0);
         break;
       case StackObject.StackObjectType.Float:
-    long floatBits = BitConverter.DoubleToInt64Bits((double)value);
-    
-    // Usar MOVZ solo para el primer segmento
-    instructions.Add($"MOVZ X0, #{floatBits & 0xFFFF}, LSL #0");
-    
-    // Usar MOVK para los segmentos restantes
-    for (int i = 1; i < 4; i++)
-    {
-        long segment = (floatBits >> (i * 16)) & 0xFFFF;
-        instructions.Add($"MOVK X0, #{segment}, LSL #{16 * i}");
-    }
+        long floatBits = BitConverter.DoubleToInt64Bits((double)value);
 
-    Push(Register.X0);
-    break;
+        // Usar MOVZ solo para el primer segmento
+        instructions.Add($"MOVZ X0, #{floatBits & 0xFFFF}, LSL #0");
+
+        // Usar MOVK para los segmentos restantes
+        for (int i = 1; i < 4; i++)
+        {
+          long segment = (floatBits >> (i * 16)) & 0xFFFF;
+          instructions.Add($"MOVK X0, #{segment}, LSL #{16 * i}");
+        }
+
+        Push(Register.X0);
+        break;
       case StackObject.StackObjectType.String:
         List<byte> stringArray = Utils.StringTo1ByteArray((string)value);
 
         Push(Register.HP);
         for (int i = 0; i < stringArray.Count; i++)
-    {
-        var charCode = stringArray[i];
-        // Modificar solo esta línea para manejar caracteres especiales en comentarios
-        var charDisplay = charCode == 10 ? "LF" : 
-                         charCode == 9 ? "TAB" : 
-                         charCode == 13 ? "CR" : 
-                         ((char)charCode).ToString();
-        Comment($"Pushing char {charCode} to heap - {charDisplay}");
+        {
+          var charCode = stringArray[i];
+          // Modificar solo esta línea para manejar caracteres especiales en comentarios
+          var charDisplay = charCode == 10 ? "LF" :
+                           charCode == 9 ? "TAB" :
+                           charCode == 13 ? "CR" :
+                           ((char)charCode).ToString();
+          Comment($"Pushing char {charCode} to heap - {charDisplay}");
 
-        Mov("w0", charCode);
-        Strb("w0", Register.HP);
-        Mov(Register.X0,1);
-        Add(Register.HP, Register.HP, Register.X0);
-    }
+          Mov("w0", charCode);
+          Strb("w0", Register.HP);
+          Mov(Register.X0, 1);
+          Add(Register.HP, Register.HP, Register.X0);
+        }
 
         break;
-        case StackObject.StackObjectType.Rune:
-      // Para rune el valor ASCII del carácter
-      Mov(Register.X0, (int)((char)value));
-      Push(Register.X0);
-      break;
-    case StackObject.StackObjectType.Nil:
-      // Para nil, simplemente se guarda un 0
-      Mov(Register.X0, 0);
-      Push(Register.X0);
-      break;
+      case StackObject.StackObjectType.Rune:
+        // Para rune el valor ASCII del carácter
+        Mov(Register.X0, (int)((char)value));
+        Push(Register.X0);
+        break;
+      case StackObject.StackObjectType.Nil:
+        // Para nil, simplemente se guarda un 0
+        Mov(Register.X0, 0);
+        Push(Register.X0);
+        break;
     }
 
     PushObject(obj);
@@ -106,7 +106,7 @@ public class ArmGenerator
   public StackObject PopObject(string rd)
   {
     var obj = stack.Last();
-    stack.RemoveAt(stack.Count - 1); 
+    stack.RemoveAt(stack.Count - 1);
 
     Pop(rd);
     return obj;
@@ -157,26 +157,26 @@ public class ArmGenerator
   }
 
   public StackObject RuneObject()
-{
-  return new StackObject
   {
-    Type = StackObject.StackObjectType.Rune,
-    Length = 8,        // Un carácter ocupa 8 bytes en ARM64
-    Depth = depth,
-    Id = null
-  };
-}
+    return new StackObject
+    {
+      Type = StackObject.StackObjectType.Rune,
+      Length = 8,        // Un carácter ocupa 8 bytes en ARM64
+      Depth = depth,
+      Id = null
+    };
+  }
 
-public StackObject NilObject()
-{
-  return new StackObject
+  public StackObject NilObject()
   {
-    Type = StackObject.StackObjectType.Nil,
-    Length = 8,
-    Depth = depth,
-    Id = null
-  };
-}
+    return new StackObject
+    {
+      Type = StackObject.StackObjectType.Nil,
+      Length = 8,
+      Depth = depth,
+      Id = null
+    };
+  }
 
   public StackObject CloneObject(StackObject obj)
   {
@@ -199,15 +199,13 @@ public StackObject NilObject()
   {
     int byteOffset = 0;
 
-    for (int i = stack.Count -1; i >= 0; i--)
+    for (int i = stack.Count - 1; i >= 0; i--)
     {
       if (stack[i].Depth == depth)
       {
         byteOffset += stack[i].Length;
         stack.RemoveAt(i);
-      }else{
-        break;
-      }  
+      }
     }
     depth--;
     return byteOffset;
@@ -216,6 +214,50 @@ public StackObject NilObject()
   public void TagObject(string id)
   {
     stack.Last().Id = id;
+  }
+
+  public int GetTemporaryValues()
+{
+    // Contar cuántos valores temporales hay en la pila que no están asociados a variables
+    int byteCount = 0;
+    foreach (var obj in stack)
+    {
+        if (obj.Id == null) // Es un valor temporal (no es una variable)
+        {
+            byteCount += obj.Length;
+        }
+    }
+    return byteCount;
+}
+
+public void CleanStack(int bytes)
+{
+    if (bytes > 0)
+    {
+        Comment($"Cleaning {bytes} bytes from stack");
+        Add(Register.SP, Register.SP, bytes);
+    }
+}
+
+public int CleanTemporaries()
+  {
+      int bytesCleaned = 0;
+      // Itera hacia atrás para eliminar de forma segura
+      for (int i = stack.Count - 1; i >= 0; i--)
+      {
+          // Asumiendo que los temporales tienen Id == null
+          if (stack[i].Id == null)
+          {
+              bytesCleaned += stack[i].Length;
+              stack.RemoveAt(i); // Eliminar del stack lógico
+              Pop(Register.X0);  // Eliminar del stack físico (ajusta SP)
+          }
+          else
+          {
+              break;
+          }
+      }
+      return bytesCleaned;
   }
 
   public (int, StackObject) GetObject(string id)
@@ -247,6 +289,11 @@ public StackObject NilObject()
 
   // Instruction Sub
   public void Sub(string rd, string rn, string rm)
+  {
+    instructions.Add($"SUB {rd}, {rn}, {rm}");
+  }
+
+  public void Sub(string rd, string rn, int rm)
   {
     instructions.Add($"SUB {rd}, {rn}, {rm}");
   }
@@ -291,6 +338,11 @@ public StackObject NilObject()
     instructions.Add($"MOV {rd}, #{imm}");
   }
 
+  public void Mov(string rd, string rs)
+  {
+    instructions.Add($"MOV {rd}, {rs}");
+  }
+
   // Push Instruction
   public void Push(string rs)
   {
@@ -301,6 +353,11 @@ public StackObject NilObject()
   public void Pop(string rd)
   {
     instructions.Add($"LDR {rd}, [SP], #8");
+  }
+
+  public void Fcvtzs(string rd, string rn)
+  {
+    instructions.Add($"FCVTZS {rd}, {rn}");
   }
 
   // Float Operations 
@@ -432,19 +489,19 @@ public StackObject NilObject()
   }
 
   public void PrintBool(string rs)
-{
+  {
     stdLib.Use("print_bool");
     instructions.Add($"MOV X0, {rs}");
     instructions.Add($"BL print_bool");
-}
+  }
 
-public void PrintRune(string rs)
-{
-  // Imprime un carácter individual (rune)
-  stdLib.Use("print_rune");
-  instructions.Add($"MOV X0, {rs}");
-  instructions.Add($"BL print_rune");
-}
+  public void PrintRune(string rs)
+  {
+    // Imprime un carácter individual (rune)
+    stdLib.Use("print_rune");
+    instructions.Add($"MOV X0, {rs}");
+    instructions.Add($"BL print_rune");
+  }
 
   // Comments
   public void Comment(string comment)
@@ -460,7 +517,7 @@ public void PrintRune(string rs)
     sb.AppendLine(".text");
     sb.AppendLine(".global _start");
     sb.AppendLine("_start:");
-    sb.AppendLine("    adr x10, heap"); 
+    sb.AppendLine("    adr x10, heap");
 
     EndProgram(); // Ensure program ends
 

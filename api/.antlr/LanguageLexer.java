@@ -1,4 +1,4 @@
-// Generated from /media/josue/Elements/bato/p/OLC2_Proyecto2_202202481/api/Language.g4 by ANTLR 4.13.1
+// Generated from /media/josue/Elements/bato/p/OLC2_Proyecto2_202202481___1/api/Language.g4 by ANTLR 4.13.1
 import org.antlr.v4.runtime.Lexer;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.Token;

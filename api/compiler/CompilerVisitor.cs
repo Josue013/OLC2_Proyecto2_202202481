@@ -363,7 +363,7 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
     {
       Code.Comment("Removing " + bytesToRemove + " bytes from stack");
       Code.Mov(Register.X0, bytesToRemove);
-      Code.Add(Register.SP, Register.SP, Register.X0); // Adjust stack pointer
+      Code.Add(Register.SP, Register.SP, Register.X0); 
       Code.Comment("Stack pointer adjusted");
 
 
@@ -501,31 +501,25 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
   }
 
   public override Object? VisitMod(LanguageParser.ModContext context)
-  {
-
+{
     Code.Comment("Mod operation");
-
-    // Visitar operandos y apilarlos
-    Code.Comment("Visiting left operand");
-    Visit(context.expr(0)); // Visit first operand; top -> [op1]
-    Code.Comment("Visiting right operand");
-    Visit(context.expr(1)); // Visit second operand; top -> [op2, op1]
-
-    Code.Comment("Popping operands");
-    Code.Pop(Register.X1); // Pop second operand; top -> [op1]
-    Code.Pop(Register.X0); // Pop first operand; top -> []
-
-    // Calcular el módulo usando: a % b = a - (a/b * b)
-    Code.Comment("Calculate modulo");
-    Code.Div(Register.X2, Register.X0, Register.X1); // X2 = X0 / X1 
-    Code.Mul(Register.X2, Register.X2, Register.X1);  // X2 = X2 * X1
-    Code.Sub(Register.X0, Register.X0, Register.X2);  // X0 = X0 - X2
-
-    Code.Comment("Push result");
-    Code.Push(Register.X0); // Push result; top -> [result]
-
+    Visit(context.expr(0));
+    Visit(context.expr(1));
+    
+    Code.PopObject(Register.X1); // Segundo operando
+    Code.PopObject(Register.X0); // Primer operando
+    
+    // Calcular módulo
+    Code.Div(Register.X2, Register.X0, Register.X1);
+    Code.Mul(Register.X2, Register.X2, Register.X1);
+    Code.Sub(Register.X0, Register.X0, Register.X2);
+    
+    // Guardar resultado y limpiar temporales
+    Code.Push(Register.X0);
+    Code.PushObject(Code.IntObject());
+    
     return null;
-  }
+}
 
   public override Object? VisitAddAssign(LanguageParser.AddAssignContext context)
   {
@@ -840,13 +834,14 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
   }
 
   public override Object? VisitSwitchStmt(LanguageParser.SwitchStmtContext context)
-  {
+{
     Code.Comment("Switch statement");
 
     // Evaluar la expresión del switch
     Visit(context.expr(0));
-    var switchValue = Code.PopObject(Register.X0);
-    Code.Push(Register.X0);  // Guardar copia del valor del switch
+    var switchValue = Code.PopObject(Register.X1);
+    Code.Push(Register.X1); // Solo una vez (valor físico)
+    Code.PushObject(Code.CloneObject(switchValue)); // Solo una vez (objeto lógico)
 
     var endLabel = Code.GetLabel();
     var previousBreakLabel = BreakLabel;
@@ -860,113 +855,280 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
     int totalCases = 0;
     for (int i = 0; i < context.children.Count; i++)
     {
-      if (context.children[i].GetText() == "case")
-      {
-        totalCases++;
-      }
-      else if (context.children[i].GetText() == "default")
-      {
-        hasDefault = true;
-      }
+        if (context.children[i].GetText() == "case")
+            totalCases++;
+        else if (context.children[i].GetText() == "default")
+            hasDefault = true;
     }
 
     // Segunda pasada: generar código para cada caso
     int currentCase = 0;
     for (int i = 0; i < context.children.Count; i++)
     {
-      if (context.children[i].GetText() == "case")
-      {
-        Code.SetLabel(nextCaseLabel);
-        nextCaseLabel = Code.GetLabel();
-
-        // Evaluar la expresión del caso
-        Visit(context.expr(currentCase + 1));
-        var caseType = Code.TopObject().Type;
-        var caseValue = Code.PopObject(Register.X1);
-
-        // Recuperar valor del switch para comparación
-        Code.Pop(Register.X0);
-        Code.Push(Register.X0);
-
-        // Comparar según el tipo
-        if (switchValue.Type == StackObject.StackObjectType.String &&
-            caseType == StackObject.StackObjectType.String)
+        if (context.children[i].GetText() == "case")
         {
-          // Comparación de strings
-          Code.stdLib.Use("compare_strings");
-          Code.instructions.Add("BL compare_strings");
-          // Si son diferentes (x0 != 0), saltar al siguiente caso o al default/end
-          var nextLabel = (currentCase < totalCases - 1) ? nextCaseLabel :
-                        hasDefault ? defaultLabel : endLabel;
-          Code.Cbnz(Register.X0, nextLabel);
-        }
-        else
-        {
-          // Comparación numérica
-          Code.Cmp(Register.X0, Register.X1);
-          // Si son diferentes, saltar al siguiente caso o al default/end
-          var nextLabel = (currentCase < totalCases - 1) ? nextCaseLabel :
-                        hasDefault ? defaultLabel : endLabel;
-          Code.Bne(nextLabel);
-        }
+            Code.SetLabel(nextCaseLabel);
+            nextCaseLabel = Code.GetLabel();
 
-        // Si coincide, ejecutar el bloque de código
-        i++;
-        while (i < context.children.Count &&
-               context.children[i].GetText() != "case" &&
-               context.children[i].GetText() != "default")
-        {
-          Visit(context.children[i]);
-          i++;
-        }
+            // Evaluar la expresión del caso
+            Visit(context.expr(currentCase + 1));
+            var caseType = Code.TopObject().Type;
+            Code.PopObject(Register.X0);  // Valor del caso en X0
 
-        Code.B(endLabel);  // Break implícito
-        i--;
-        currentCase++;
-      }
-      else if (context.children[i].GetText() == "default")
-      {
-        Code.SetLabel(defaultLabel);
-        i++;
-        while (i < context.children.Count &&
-               context.children[i].GetText() != "case")
-        {
-          Visit(context.children[i]);
-          i++;
+            // Recuperar valor del switch para comparación (sin pop/push extra)
+            Code.Mov(Register.X1, Register.SP); // SP apunta al valor del switch
+            Code.Ldr(Register.X1, Register.X1); // Cargar valor del switch en X1
+
+            // Comparar según el tipo
+            var nextLabel = (currentCase < totalCases - 1) ? nextCaseLabel :
+                            hasDefault ? defaultLabel : endLabel;
+            if (switchValue.Type == StackObject.StackObjectType.String &&
+                caseType == StackObject.StackObjectType.String)
+            {
+                Code.stdLib.Use("compare_strings");
+                Code.instructions.Add("BL compare_strings");
+                Code.Cbnz(Register.X0, nextLabel);
+            }
+            else
+            {
+                Code.Cmp(Register.X1, Register.X0);
+                Code.Bne(nextLabel);
+            }
+
+            // Ejecutar el bloque de código
+            i++;
+            while (i < context.children.Count &&
+                   context.children[i].GetText() != "case" &&
+                   context.children[i].GetText() != "default")
+            {
+                Visit(context.children[i]);
+                i++;
+            }
+
+            var tempBytesCase = Code.CleanTemporaries();
+            if (tempBytesCase > 0)
+            {
+                Code.Comment($"Cleaning case temporaries: {tempBytesCase} bytes");
+            }
+
+            Code.B(endLabel);  // Break implícito
+            i--;
+            currentCase++;
         }
-        i--;
-        Code.B(endLabel);  // Break implícito
-      }
+        else if (context.children[i].GetText() == "default")
+        {
+            Code.SetLabel(defaultLabel);
+            i++;
+            while (i < context.children.Count &&
+                   context.children[i].GetText() != "case")
+            {
+                Visit(context.children[i]);
+                i++;
+            }
+
+            // --- Limpiar temporales ANTES del break ---
+            var tempBytesDefault = Code.CleanTemporaries();
+            if (tempBytesDefault > 0)
+            {
+                Code.Comment($"Cleaning default temporaries: {tempBytesDefault} bytes");
+            }
+
+            i--;
+            Code.B(endLabel);  // Break implícito
+        }
     }
 
     // Si no hubo coincidencia y no hay default, saltar al final
     if (!hasDefault)
     {
-      Code.SetLabel(nextCaseLabel);
-      Code.B(endLabel);
+        Code.SetLabel(nextCaseLabel);
+        Code.B(endLabel);
     }
 
     Code.SetLabel(endLabel);
-    Code.Pop(Register.X0);  // Limpiar el valor del switch de la pila
-    BreakLabel = previousBreakLabel;
 
+    // Limpiar el valor del switch y su objeto de la pila (solo un pop físico y lógico)
+    Code.PopObject(Register.X0); 
+    Code.Pop(Register.X0);
+
+    BreakLabel = previousBreakLabel;
     return null;
-  }
+}
 
   public override Object? VisitIncdec(LanguageParser.IncdecContext context)
-  {
+{
+    string varName = context.ID().GetText();
+    string operation = context.op.Text; // ++ o --
+    
+    Code.Comment($"{operation} operation on variable: {varName}");
+    
+    // Obtener el offset y el objeto de la variable
+    var (offset, varObject) = Code.GetObject(varName);
+    
+    // Cargar el valor actual de la variable
+    Code.Comment("Cargando valor de la variable");
+    Code.Mov(Register.X1, offset);
+    Code.Add(Register.X1, Register.SP, Register.X1); // X1 ahora contiene la dirección de la variable
+    Code.Ldr(Register.X0, Register.X1); // X0 ahora contiene el valor de la variable
+    
+    if (varObject.Type == StackObject.StackObjectType.Int || 
+        varObject.Type == StackObject.StackObjectType.Bool)
+    {
+        // Para enteros y booleanos
+        Code.Comment($"Performing {operation} operation on integer/boolean");
+        
+        if (operation == "++")
+        {
+            Code.Add(Register.X0, Register.X0, 1); // X0 = X0 + 1
+        }
+        else // operation == "--"
+        {
+            Code.Sub(Register.X0, Register.X0, 1); // X0 = X0 - 1
+        }
+        
+        // Guardar el nuevo valor de vuelta en la variable
+        Code.Str(Register.X0, Register.X1);
+        
+        // Poner el nuevo valor en la pila para posible uso posterior
+        Code.Push(Register.X0);
+        Code.PushObject(Code.CloneObject(varObject));
+    }
+    else if (varObject.Type == StackObject.StackObjectType.Float)
+    {
+        // Para decimales
+        Code.Comment($"Performing {operation} operation on float");
+        
+        // Convertir el valor a float si no lo es ya
+        Code.Scvtf(Register.D0, Register.X0);
+        
+        // Crear el valor 1.0 en D1
+        Code.Mov(Register.X0, 1);
+        Code.Scvtf(Register.D1, Register.X0);
+        
+        if (operation == "++")
+        {
+            Code.Fadd(Register.D0, Register.D0, Register.D1); // D0 = D0 + 1.0
+        }
+        else // operation == "--"
+        {
+            Code.Fsub(Register.D0, Register.D0, Register.D1); // D0 = D0 - 1.0
+        }
+        
+        // Convertir de vuelta a entero si es necesario
+        Code.Fcvtzs(Register.X0, Register.D0);
+        
+        // Guardar el nuevo valor de vuelta en la variable
+        Code.Str(Register.X0, Register.X1);
+        
+        // Poner el nuevo valor en la pila para posible uso posterior
+        Code.Push(Register.D0);
+        Code.PushObject(Code.CloneObject(varObject));
+    }
+    else
+    {
+        // Tipo no soportado para incremento/decremento
+        throw new Exception($"Operador {operation} no soportado para el tipo {varObject.Type}");
+    }
+    
     return null;
-  }
+}
 
   public override Object? VisitForWhileStmt(LanguageParser.ForWhileStmtContext context)
   {
+
+      /* 
+        startLabel:
+          ...condition
+          if (!condition) goto endLabel
+          ...body
+          goto startLabel
+        endLabel:
+      */
+
+    Code.Comment("For-While statement");
+    var startLabel = Code.GetLabel();
+    var endLabel = Code.GetLabel();
+
+    var prevContinueLabel = ContinueLabel;  
+    var prevBreakLabel = BreakLabel;
+    ContinueLabel = startLabel; // Set continue label
+    BreakLabel = endLabel; // Set break label
+
+    Code.SetLabel(startLabel); // Set start label
+    Visit(context.expr()); // Visit condition; top -> [condition]
+    Code.PopObject(Register.X0); // Pop condition; top -> []
+    Code.Cbz(Register.X0, endLabel); // If condition is false, jump to end label
+    Visit(context.stmt()); // Visit body; top -> []
+    Code.B(startLabel); // Jump to start label
+    Code.SetLabel(endLabel); // Set end label
+    Code.Comment("End of For-While statement");
+
+    ContinueLabel = prevContinueLabel; // Restore previous continue label
+    BreakLabel = prevBreakLabel; // Restore previous break label
+
+
     return null;
   }
 
   public override Object? VisitForClassicStmt(LanguageParser.ForClassicStmtContext context)
-  {
+{
+    var startLabel = Code.GetLabel();
+    var endLabel = Code.GetLabel();
+    var incrementLabel = Code.GetLabel();
+
+    var prevContinueLabel = ContinueLabel;
+    var prevBreakLabel = BreakLabel;
+
+    ContinueLabel = incrementLabel;
+    BreakLabel = endLabel;
+
+    Code.Comment("For-Classic statement");
+    Code.NewScope(); // Nuevo ámbito para las variables declaradas en el for
+
+    // Inicialización 
+    Visit(context.forInit());
+    
+    // Etiqueta de inicio
+    Code.SetLabel(startLabel);
+    
+    // Condición
+    Visit(context.expr(0));
+    var conditionObj = Code.TopObject();
+    Code.PopObject(Register.X0);
+    Code.Cbz(Register.X0, endLabel);
+    
+    // Cuerpo del for
+    Visit(context.stmt());
+    
+    // Incremento
+    Code.SetLabel(incrementLabel);
+    Visit(context.expr(1));
+    
+    // **** Cambio importante: En lugar de solo hacer PopObject, necesitamos
+    // también descartar el objeto que se puso en la pila ****
+    if (Code.TopObject() != null)
+    {
+        Code.PopObject(Register.X0);
+        // No necesitamos hacer Push de este valor de vuelta
+    }
+    
+    Code.B(startLabel);
+    
+    Code.SetLabel(endLabel);
+    
+    // **** Cambio importante: Terminamos el ámbito DESPUÉS de terminar el bucle ****
+    var bytesToRemove = Code.EndScope();
+    if (bytesToRemove > 0)
+    {
+        Code.Comment($"Removing {bytesToRemove} bytes from stack");
+        Code.Add(Register.SP, Register.SP, bytesToRemove);
+    }
+    
+    ContinueLabel = prevContinueLabel;
+    BreakLabel = prevBreakLabel;
+
     return null;
-  }
+}
 
   public override Object? VisitForRangeStmt(LanguageParser.ForRangeStmtContext context)
   {
@@ -1009,24 +1171,48 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
   }
 
   public override Object? VisitBreakStmt(LanguageParser.BreakStmtContext context)
-  {
+{
     Code.Comment("Break statement");
     if (BreakLabel != null)
     {
-      Code.B(BreakLabel);
+        // Limpiar cualquier valor temporal en la pila antes de saltar
+        Code.Comment("Cleaning up temporary values from stack before break");
+        
+        // Obtener todos los valores temporales acumulados desde la última instrucción
+        var tempValues = Code.GetTemporaryValues();
+        if (tempValues > 0)
+        {
+            Code.Comment($"Removing {tempValues} bytes from stack");
+            Code.Add(Register.SP, Register.SP, tempValues);
+        }
+        
+        // Ahora sí, saltar a la etiqueta break
+        Code.B(BreakLabel);
     }
     return null;
-  }
+}
 
   public override Object? VisitContinueStmt(LanguageParser.ContinueStmtContext context)
-  {
+{
     Code.Comment("Continue statement");
     if (ContinueLabel != null)
     {
-      Code.B(ContinueLabel);
+        // Limpiar cualquier valor temporal en la pila antes de saltar
+        Code.Comment("Cleaning up temporary values from stack before continue");
+        
+        // Obtener todos los valores temporales acumulados desde la última instrucción
+        var tempValues = Code.GetTemporaryValues();
+        if (tempValues > 0)
+        {
+            Code.Comment($"Removing {tempValues} bytes from stack");
+            Code.Add(Register.SP, Register.SP, tempValues);
+        }
+        
+        // Ahora sí, saltar a la etiqueta continue
+        Code.B(ContinueLabel);
     }
     return null;
-  }
+}
 
   public override Object? VisitReturnStmt(LanguageParser.ReturnStmtContext context)
   {
