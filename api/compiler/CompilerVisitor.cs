@@ -46,6 +46,7 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
         "float64" => Code.FloatObject(),
         "string" => Code.StringObject(),
         "bool" => Code.BoolObject(), // bool se maneja como int (0=false, 1=true)
+        "rune" => Code.RuneObject(),
         _ => throw new Exception($"Tipo no soportado: {type}")
       };
 
@@ -65,6 +66,9 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
         case "bool":
           Code.PushConstant(defaultObj, false); // false
           break;
+        case "rune":
+        Code.PushConstant(defaultObj, '\0');
+        break;
       }
     }
     else
@@ -131,49 +135,65 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
   }
 
   public override Object? VisitPrintStmt(LanguageParser.PrintStmtContext context)
-{
+  {
     Code.Comment("Print statement");
     bool isFirst = true;
 
     // Visitar cada expresión en la lista
     foreach (var expr in context.exprList().expr())
     {
-        // Si no es el primer elemento, imprimir un espacio
-        if (!isFirst)
-        {
-            Code.Comment("Print space between values");
-            Code.Mov("w0", 32);
-            Code.Push("x0");
-            Code.PrintString(Register.SP);
-            Code.Add(Register.SP, Register.SP, 8); // Restaurar el stack pointer después de imprimir el espacio
-        }
+      // Si no es el primer elemento, imprimir un espacio
+      if (!isFirst)
+      {
+        Code.Comment("Print space between values");
+        Code.Mov("w0", 32);
+        Code.Push("x0");
+        Code.PrintString(Register.SP);
+        Code.Add(Register.SP, Register.SP, 8); // Restaurar el stack pointer después de imprimir el espacio
+      }
 
-        Code.Comment("Visiting expression");
-        Visit(expr);
+      Code.Comment("Visiting expression");
+      Visit(expr);
 
-        Code.Comment("Popping value to print");
-        var isDouble = Code.TopObject().Type == StackObject.StackObjectType.Float;
-        var value = Code.PopObject(isDouble ? Register.D0 : Register.X0);
+      Code.Comment("Popping value to print");
+      var isDouble = Code.TopObject().Type == StackObject.StackObjectType.Float;
+      var value = Code.PopObject(isDouble ? Register.D0 : Register.X0);
 
-        // Imprimir según el tipo
-        if (value.Type == StackObject.StackObjectType.Int)
-        {
-            Code.PrintInteger(Register.X0);
-        }
-        else if (value.Type == StackObject.StackObjectType.String)
-        {
-            Code.PrintString(Register.X0);
-        }
-        else if (value.Type == StackObject.StackObjectType.Float)
-        {
-            Code.PrintFloat();
-        }
-        else if (value.Type == StackObject.StackObjectType.Bool)
-        {
-            Code.PrintBool(Register.X0);
-        }
+      // Imprimir según el tipo
+      if (value.Type == StackObject.StackObjectType.Int)
+      {
+        Code.PrintInteger(Register.X0);
+      }
+      else if (value.Type == StackObject.StackObjectType.String)
+      {
+        Code.PrintString(Register.X0);
+      }
+      else if (value.Type == StackObject.StackObjectType.Float)
+      {
+        Code.PrintFloat();
+      }
+      else if (value.Type == StackObject.StackObjectType.Bool)
+      {
+        Code.PrintBool(Register.X0);
+      }
+      else if (value.Type == StackObject.StackObjectType.Rune)
+      {
+        Code.PrintRune(Register.X0);
+      }
+      else if (value.Type == StackObject.StackObjectType.Nil)
+      {
+        Code.Comment("Printing nil value");
+        Code.instructions.Add($"MOV X0, #1");  // stdout
+        Code.instructions.Add($"ADR X1, nil_str");  // nil string
+        Code.instructions.Add($"MOV X2, #3");  // longitud de "nil"
+        Code.instructions.Add($"MOV X8, #64");  // write syscall
+        Code.instructions.Add($"SVC #0");
+        break;
+      }
 
-        isFirst = false;
+
+
+      isFirst = false;
     }
 
     // Imprimir salto de línea al final
@@ -182,9 +202,9 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
     Code.Push("x0");
     Code.PrintString(Register.SP);
     Code.Add(Register.SP, Register.SP, 8); // Restaurar el stack pointer después de imprimir el salto de línea
-    
+
     return null;
-}
+  }
 
   public override Object? VisitIdentifier(LanguageParser.IdentifierContext context)
   {
@@ -275,6 +295,9 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
 
   public override Object? VisitNil(LanguageParser.NilContext context)
   {
+    Code.Comment("Nil constant");
+    var nilObject = Code.NilObject();
+    Code.PushConstant(nilObject, 0);  // El valor real no importa para nil
     return null;
   }
 
@@ -292,6 +315,34 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
 
   public override Object? VisitRune(LanguageParser.RuneContext context)
   {
+    // El texto viene con comillas simples: 'c'
+    var runeText = context.RUNE().GetText().Trim('\'');
+
+    // Manejar secuencias de escape
+    char runeValue;
+    if (runeText.StartsWith("\\"))
+    {
+      switch (runeText.Substring(1))
+      {
+        case "n": runeValue = '\n'; break;
+        case "r": runeValue = '\r'; break;
+        case "t": runeValue = '\t'; break;
+        case "\"": runeValue = '\"'; break;
+        case "\'": runeValue = '\''; break;
+        case "\\": runeValue = '\\'; break;
+        default: runeValue = runeText[1]; break;
+      }
+    }
+    else
+    {
+      runeValue = runeText[0];
+    }
+
+    Code.Comment($"Rune constant: '{runeValue}'");
+
+    var runeObject = Code.RuneObject();
+    Code.PushConstant(runeObject, runeValue);
+
     return null;
   }
 
@@ -420,9 +471,23 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
     }
 
     if (operation == "+")
+{
+    if (left.Type == StackObject.StackObjectType.String && 
+        right.Type == StackObject.StackObjectType.String)
     {
-      Code.Add(Register.X0, Register.X0, Register.X1); // X0 = X0 + X1
+        // Concatenación de strings
+        Code.Comment("String concatenation");
+        api.compiler.arm.Builtins.ConcatString(Code, Register.X1, Register.X0);
+        
+        Code.PushObject(Code.StringObject());
+        return null;
     }
+    else
+    {
+        // Suma normal
+        Code.Add(Register.X0, Register.X0, Register.X1); // X0 = X0 + X1
+    }
+}
     else if (operation == "-")
     {
       Code.Sub(Register.X0, Register.X1, Register.X0); // X0 = X0 - X1
@@ -542,41 +607,41 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
       return null;
     }
 
-    if (right.Type == StackObject.StackObjectType.String && 
+    if (right.Type == StackObject.StackObjectType.String &&
     left.Type == StackObject.StackObjectType.String)
-{
-    Code.Comment("String comparison");
-    var StringTrueLabel = Code.GetLabel();
-    var StrinEndLabel = Code.GetLabel();
-    
-    // Llamar a la función de comparación
-    Code.stdLib.Use("compare_strings");
-    Code.instructions.Add("BL compare_strings");
-    
-    // x0 contiene 0 si son iguales, 1 si son diferentes
-    if (operation == "==")
     {
+      Code.Comment("String comparison");
+      var StringTrueLabel = Code.GetLabel();
+      var StrinEndLabel = Code.GetLabel();
+
+      // Llamar a la función de comparación
+      Code.stdLib.Use("compare_strings");
+      Code.instructions.Add("BL compare_strings");
+
+      // x0 contiene 0 si son iguales, 1 si son diferentes
+      if (operation == "==")
+      {
         Code.Cbz(Register.X0, StringTrueLabel);  // Si x0 es 0 (iguales), saltar a true
-    }
-    else if (operation == "!=")
-    {
+      }
+      else if (operation == "!=")
+      {
         Code.Cbnz(Register.X0, StringTrueLabel); // Si x0 no es 0 (diferentes), saltar a true
+      }
+
+      // Resultado falso
+      Code.Mov(Register.X0, 0);
+      Code.Push(Register.X0);
+      Code.B(StrinEndLabel);
+
+      // Resultado verdadero
+      Code.SetLabel(StringTrueLabel);
+      Code.Mov(Register.X0, 1);
+      Code.Push(Register.X0);
+
+      Code.SetLabel(StrinEndLabel);
+      Code.PushObject(Code.BoolObject());
+      return null;
     }
-    
-    // Resultado falso
-    Code.Mov(Register.X0, 0);
-    Code.Push(Register.X0);
-    Code.B(StrinEndLabel);
-    
-    // Resultado verdadero
-    Code.SetLabel(StringTrueLabel);
-    Code.Mov(Register.X0, 1);
-    Code.Push(Register.X0);
-    
-    Code.SetLabel(StrinEndLabel);
-    Code.PushObject(Code.BoolObject());
-    return null;
-}
 
     Code.Cmp(Register.X1, Register.X0); // Compare left and right operands
     var trueLabel = Code.GetLabel();
@@ -633,79 +698,79 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
 
 
   public override Object? VisitLogical(LanguageParser.LogicalContext context)
-{
+  {
     Code.Comment("Logical operation: " + context.op.Text);
     var operation = context.op.Text;
 
     if (operation == "&&")
     {
-        // Evaluar operando izquierdo
-        Code.Comment("Starting AND operation");
-        string FalseLabel = Code.GetLabel();
-        string EndLabel = Code.GetLabel();
+      // Evaluar operando izquierdo
+      Code.Comment("Starting AND operation");
+      string FalseLabel = Code.GetLabel();
+      string EndLabel = Code.GetLabel();
 
-        Visit(context.expr(0)); // Visit left operand; top -> [left]
-        var left = Code.PopObject(Register.X0); // Pop left operand; top -> []
+      Visit(context.expr(0)); // Visit left operand; top -> [left]
+      var left = Code.PopObject(Register.X0); // Pop left operand; top -> []
 
-        Code.Cmp(Register.X0, 0); // Compare left operand with 0
-        Code.Comment($"Saltar a etiqueta {FalseLabel} si exp(0) es falso ");
-        Code.Beq(FalseLabel); // If left operand is false, jump to FalseLabel
+      Code.Cmp(Register.X0, 0); // Compare left operand with 0
+      Code.Comment($"Saltar a etiqueta {FalseLabel} si exp(0) es falso ");
+      Code.Beq(FalseLabel); // If left operand is false, jump to FalseLabel
 
-        Visit(context.expr(1)); // Visit right operand; top -> [right]
-        var right = Code.PopObject(Register.X0); // Pop right operand; top -> []
+      Visit(context.expr(1)); // Visit right operand; top -> [right]
+      var right = Code.PopObject(Register.X0); // Pop right operand; top -> []
 
-        Code.Cmp(Register.X0, 0); // Compare right operand with 0
-        Code.Beq(FalseLabel); // If right operand is false, jump to FalseLabel
-        
-        Code.Mov(Register.X0, 1); // Si llegamos aquí, ambos son verdaderos
-        Code.B(EndLabel);
+      Code.Cmp(Register.X0, 0); // Compare right operand with 0
+      Code.Beq(FalseLabel); // If right operand is false, jump to FalseLabel
 
-        Code.Comment($"Saltar a etiquetra {FalseLabel} si exp(0) es falso");
-        Code.SetLabel(FalseLabel); // Set FalseLabel
-        Code.Mov(Register.X0, 0); // Push false
+      Code.Mov(Register.X0, 1); // Si llegamos aquí, ambos son verdaderos
+      Code.B(EndLabel);
 
-        Code.Comment($"Saltar a etiqueta {EndLabel} ");
-        Code.SetLabel(EndLabel); // Set EndLabel
-        Code.Push(Register.X0); // Push result; top -> [result]
-        Code.PushObject(Code.BoolObject()); // Push the boolean object
+      Code.Comment($"Saltar a etiquetra {FalseLabel} si exp(0) es falso");
+      Code.SetLabel(FalseLabel); // Set FalseLabel
+      Code.Mov(Register.X0, 0); // Push false
+
+      Code.Comment($"Saltar a etiqueta {EndLabel} ");
+      Code.SetLabel(EndLabel); // Set EndLabel
+      Code.Push(Register.X0); // Push result; top -> [result]
+      Code.PushObject(Code.BoolObject()); // Push the boolean object
     }
     else if (operation == "||")
     {
-        // Similar implementación para OR
-        string TrueLabel = Code.GetLabel();
-        string EndLabel = Code.GetLabel();
+      // Similar implementación para OR
+      string TrueLabel = Code.GetLabel();
+      string EndLabel = Code.GetLabel();
 
-        Visit(context.expr(0));
-        var left = Code.PopObject(Register.X0);
+      Visit(context.expr(0));
+      var left = Code.PopObject(Register.X0);
 
-        Code.Cmp(Register.X0, 0);
-        Code.Comment($"Saltar a etiqueta {TrueLabel} si exp(0) es verdadero");
-        Code.Bne(TrueLabel);
+      Code.Cmp(Register.X0, 0);
+      Code.Comment($"Saltar a etiqueta {TrueLabel} si exp(0) es verdadero");
+      Code.Bne(TrueLabel);
 
-        Visit(context.expr(1));
-        var right = Code.PopObject(Register.X0);
+      Visit(context.expr(1));
+      var right = Code.PopObject(Register.X0);
 
-        Code.Cmp(Register.X0, 0);
-        Code.Bne(TrueLabel);
+      Code.Cmp(Register.X0, 0);
+      Code.Bne(TrueLabel);
 
-        Code.Mov(Register.X0, 0); // Si llegamos aquí, ambos son falsos
-        Code.B(EndLabel);
+      Code.Mov(Register.X0, 0); // Si llegamos aquí, ambos son falsos
+      Code.B(EndLabel);
 
-        Code.SetLabel(TrueLabel);
-        Code.Mov(Register.X0, 1);
+      Code.SetLabel(TrueLabel);
+      Code.Mov(Register.X0, 1);
 
-        Code.SetLabel(EndLabel);
-        Code.Push(Register.X0);
-        Code.PushObject(Code.BoolObject());
+      Code.SetLabel(EndLabel);
+      Code.Push(Register.X0);
+      Code.PushObject(Code.BoolObject());
     }
 
     return null;
-}
+  }
 
-public override Object? VisitNot(LanguageParser.NotContext context)
-{
+  public override Object? VisitNot(LanguageParser.NotContext context)
+  {
     Code.Comment("Logical NOT operation");
-    
+
     // Evaluar la expresión
     Visit(context.expr());
     var expr = Code.PopObject(Register.X0);
@@ -713,12 +778,12 @@ public override Object? VisitNot(LanguageParser.NotContext context)
     // Invertir el valor usando XOR con 1
     Code.instructions.Add($"EOR {Register.X0}, {Register.X0}, #1");
     Code.Push(Register.X0);
-    
+
     // Mantener el tipo booleano
     Code.PushObject(Code.BoolObject());
 
     return null;
-}
+  }
 
   public override Object? VisitIfStmt(LanguageParser.IfStmtContext context)
   {
@@ -748,7 +813,7 @@ public override Object? VisitNot(LanguageParser.NotContext context)
 
     var TieneElse = context.stmt().Length > 1;
 
-    if(TieneElse)
+    if (TieneElse)
     {
       Code.Comment("If-else statement");
       var elseLabel = Code.GetLabel();
@@ -775,118 +840,118 @@ public override Object? VisitNot(LanguageParser.NotContext context)
   }
 
   public override Object? VisitSwitchStmt(LanguageParser.SwitchStmtContext context)
-{
+  {
     Code.Comment("Switch statement");
-    
+
     // Evaluar la expresión del switch
     Visit(context.expr(0));
     var switchValue = Code.PopObject(Register.X0);
     Code.Push(Register.X0);  // Guardar copia del valor del switch
-    
+
     var endLabel = Code.GetLabel();
     var previousBreakLabel = BreakLabel;
     BreakLabel = endLabel;
-    
+
     var nextCaseLabel = Code.GetLabel();
     var defaultLabel = Code.GetLabel();
     bool hasDefault = false;
-    
+
     // Primera pasada: buscar si hay default y contar casos
     int totalCases = 0;
     for (int i = 0; i < context.children.Count; i++)
     {
-        if (context.children[i].GetText() == "case")
-        {
-            totalCases++;
-        }
-        else if (context.children[i].GetText() == "default")
-        {
-            hasDefault = true;
-        }
+      if (context.children[i].GetText() == "case")
+      {
+        totalCases++;
+      }
+      else if (context.children[i].GetText() == "default")
+      {
+        hasDefault = true;
+      }
     }
-    
+
     // Segunda pasada: generar código para cada caso
     int currentCase = 0;
     for (int i = 0; i < context.children.Count; i++)
     {
-        if (context.children[i].GetText() == "case")
+      if (context.children[i].GetText() == "case")
+      {
+        Code.SetLabel(nextCaseLabel);
+        nextCaseLabel = Code.GetLabel();
+
+        // Evaluar la expresión del caso
+        Visit(context.expr(currentCase + 1));
+        var caseType = Code.TopObject().Type;
+        var caseValue = Code.PopObject(Register.X1);
+
+        // Recuperar valor del switch para comparación
+        Code.Pop(Register.X0);
+        Code.Push(Register.X0);
+
+        // Comparar según el tipo
+        if (switchValue.Type == StackObject.StackObjectType.String &&
+            caseType == StackObject.StackObjectType.String)
         {
-            Code.SetLabel(nextCaseLabel);
-            nextCaseLabel = Code.GetLabel();
-            
-            // Evaluar la expresión del caso
-            Visit(context.expr(currentCase + 1));
-            var caseType = Code.TopObject().Type;
-            var caseValue = Code.PopObject(Register.X1);
-            
-            // Recuperar valor del switch para comparación
-            Code.Pop(Register.X0);
-            Code.Push(Register.X0);
-            
-            // Comparar según el tipo
-            if (switchValue.Type == StackObject.StackObjectType.String && 
-                caseType == StackObject.StackObjectType.String)
-            {
-                // Comparación de strings
-                Code.stdLib.Use("compare_strings");
-                Code.instructions.Add("BL compare_strings");
-                // Si son diferentes (x0 != 0), saltar al siguiente caso o al default/end
-                var nextLabel = (currentCase < totalCases - 1) ? nextCaseLabel : 
-                              hasDefault ? defaultLabel : endLabel;
-                Code.Cbnz(Register.X0, nextLabel);
-            }
-            else
-            {
-                // Comparación numérica
-                Code.Cmp(Register.X0, Register.X1);
-                // Si son diferentes, saltar al siguiente caso o al default/end
-                var nextLabel = (currentCase < totalCases - 1) ? nextCaseLabel : 
-                              hasDefault ? defaultLabel : endLabel;
-                Code.Bne(nextLabel);
-            }
-            
-            // Si coincide, ejecutar el bloque de código
-            i++;
-            while (i < context.children.Count && 
-                   context.children[i].GetText() != "case" && 
-                   context.children[i].GetText() != "default")
-            {
-                Visit(context.children[i]);
-                i++;
-            }
-            
-            Code.B(endLabel);  // Break implícito
-            i--;
-            currentCase++;
+          // Comparación de strings
+          Code.stdLib.Use("compare_strings");
+          Code.instructions.Add("BL compare_strings");
+          // Si son diferentes (x0 != 0), saltar al siguiente caso o al default/end
+          var nextLabel = (currentCase < totalCases - 1) ? nextCaseLabel :
+                        hasDefault ? defaultLabel : endLabel;
+          Code.Cbnz(Register.X0, nextLabel);
         }
-        else if (context.children[i].GetText() == "default")
+        else
         {
-            Code.SetLabel(defaultLabel);
-            i++;
-            while (i < context.children.Count && 
-                   context.children[i].GetText() != "case")
-            {
-                Visit(context.children[i]);
-                i++;
-            }
-            i--;
-            Code.B(endLabel);  // Break implícito
+          // Comparación numérica
+          Code.Cmp(Register.X0, Register.X1);
+          // Si son diferentes, saltar al siguiente caso o al default/end
+          var nextLabel = (currentCase < totalCases - 1) ? nextCaseLabel :
+                        hasDefault ? defaultLabel : endLabel;
+          Code.Bne(nextLabel);
         }
+
+        // Si coincide, ejecutar el bloque de código
+        i++;
+        while (i < context.children.Count &&
+               context.children[i].GetText() != "case" &&
+               context.children[i].GetText() != "default")
+        {
+          Visit(context.children[i]);
+          i++;
+        }
+
+        Code.B(endLabel);  // Break implícito
+        i--;
+        currentCase++;
+      }
+      else if (context.children[i].GetText() == "default")
+      {
+        Code.SetLabel(defaultLabel);
+        i++;
+        while (i < context.children.Count &&
+               context.children[i].GetText() != "case")
+        {
+          Visit(context.children[i]);
+          i++;
+        }
+        i--;
+        Code.B(endLabel);  // Break implícito
+      }
     }
-    
+
     // Si no hubo coincidencia y no hay default, saltar al final
     if (!hasDefault)
     {
-        Code.SetLabel(nextCaseLabel);
-        Code.B(endLabel);
+      Code.SetLabel(nextCaseLabel);
+      Code.B(endLabel);
     }
-    
+
     Code.SetLabel(endLabel);
     Code.Pop(Register.X0);  // Limpiar el valor del switch de la pila
     BreakLabel = previousBreakLabel;
-    
+
     return null;
-}
+  }
 
   public override Object? VisitIncdec(LanguageParser.IncdecContext context)
   {

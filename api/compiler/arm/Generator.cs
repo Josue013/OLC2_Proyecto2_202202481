@@ -2,7 +2,7 @@ using System.Text;
 
 public class StackObject
 {
-  public enum StackObjectType { Int, Float, String, Bool}
+  public enum StackObjectType { Int, Float, String, Bool, Rune, Nil}
   public StackObjectType Type { get; set; }
   public int Length { get; set; }
   public int Depth { get; set; }
@@ -88,6 +88,16 @@ public class ArmGenerator
     }
 
         break;
+        case StackObject.StackObjectType.Rune:
+      // Para rune el valor ASCII del carácter
+      Mov(Register.X0, (int)((char)value));
+      Push(Register.X0);
+      break;
+    case StackObject.StackObjectType.Nil:
+      // Para nil, simplemente se guarda un 0
+      Mov(Register.X0, 0);
+      Push(Register.X0);
+      break;
     }
 
     PushObject(obj);
@@ -145,6 +155,28 @@ public class ArmGenerator
       Id = null
     };
   }
+
+  public StackObject RuneObject()
+{
+  return new StackObject
+  {
+    Type = StackObject.StackObjectType.Rune,
+    Length = 8,        // Un carácter ocupa 8 bytes en ARM64
+    Depth = depth,
+    Id = null
+  };
+}
+
+public StackObject NilObject()
+{
+  return new StackObject
+  {
+    Type = StackObject.StackObjectType.Nil,
+    Length = 8,
+    Depth = depth,
+    Id = null
+  };
+}
 
   public StackObject CloneObject(StackObject obj)
   {
@@ -404,6 +436,14 @@ public class ArmGenerator
     stdLib.Use("print_bool");
     instructions.Add($"MOV X0, {rs}");
     instructions.Add($"BL print_bool");
+}
+
+public void PrintRune(string rs)
+{
+  // Imprime un carácter individual (rune)
+  stdLib.Use("print_rune");
+  instructions.Add($"MOV X0, {rs}");
+  instructions.Add($"BL print_rune");
 }
 
   // Comments

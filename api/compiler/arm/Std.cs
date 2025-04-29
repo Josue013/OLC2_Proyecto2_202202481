@@ -386,6 +386,36 @@ compare_done:
     ldp x19, x20, [sp], #16
     ldp x29, x30, [sp], #16
     ret"
+},{
+"print_rune", @"
+//--------------------------------------------------------------
+// print_rune - Prints a single character to stdout
+//
+// Input:
+//   x0 - The rune value to print (ASCII code)
+//--------------------------------------------------------------
+print_rune:
+  // Save registers
+  stp x29, x30, [sp, #-16]!
+  
+  // Store the rune on the stack
+  sub sp, sp, #16
+  strb w0, [sp]
+  mov x1, sp     // Buffer address for syscall
+  
+  // Print the character
+  mov x0, #1     // File descriptor: 1 for stdout
+  mov x2, #1     // Length: 1 byte
+  mov x8, #64    // syscall: write
+  svc #0
+  
+  // Restore stack
+  add sp, sp, #16
+  
+  // Restore registers
+  ldp x29, x30, [sp], #16
+  ret
+  "
 }
     };
 
@@ -395,6 +425,7 @@ compare_done:
         { "dot_char", @"dot_char: .ascii "".""" },
         { "zero_char", @"zero_char: .ascii ""0""" },
         { "true_str", @"true_str: .ascii ""true""" },
-        { "false_str", @"false_str: .ascii ""false""" }
+        { "false_str", @"false_str: .ascii ""false""" },
+        { "nil_str", @"nil_str: .ascii ""nil""" }
     };
 }
