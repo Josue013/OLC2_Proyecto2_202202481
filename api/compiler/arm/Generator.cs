@@ -7,7 +7,7 @@ public class StackObject
   public int Length { get; set; }
   public int Depth { get; set; }
   public string? Id { get; set; }
-  public int Offset { get; set; } 
+  public int Offset { get; set; }
 
 }
 
@@ -234,47 +234,47 @@ public class ArmGenerator
   }
 
   public int GetTemporaryValues()
-{
+  {
     // Contar cuántos valores temporales hay en la pila que no están asociados a variables
     int byteCount = 0;
     foreach (var obj in stack)
     {
-        if (obj.Id == null) // Es un valor temporal (no es una variable)
-        {
-            byteCount += obj.Length;
-        }
+      if (obj.Id == null) // Es un valor temporal (no es una variable)
+      {
+        byteCount += obj.Length;
+      }
     }
     return byteCount;
-}
+  }
 
-public void CleanStack(int bytes)
-{
+  public void CleanStack(int bytes)
+  {
     if (bytes > 0)
     {
-        Comment($"Cleaning {bytes} bytes from stack");
-        Add(Register.SP, Register.SP, bytes);
+      Comment($"Cleaning {bytes} bytes from stack");
+      Add(Register.SP, Register.SP, bytes);
     }
-}
+  }
 
-public int CleanTemporaries()
+  public int CleanTemporaries()
   {
-      int bytesCleaned = 0;
-      // Itera hacia atrás para eliminar de forma segura
-      for (int i = stack.Count - 1; i >= 0; i--)
+    int bytesCleaned = 0;
+    // Itera hacia atrás para eliminar de forma segura
+    for (int i = stack.Count - 1; i >= 0; i--)
+    {
+      // Asumiendo que los temporales tienen Id == null
+      if (stack[i].Id == null)
       {
-          // Asumiendo que los temporales tienen Id == null
-          if (stack[i].Id == null)
-          {
-              bytesCleaned += stack[i].Length;
-              stack.RemoveAt(i); // Eliminar del stack lógico
-              Pop(Register.X0);  // Eliminar del stack físico (ajusta SP)
-          }
-          else
-          {
-              break;
-          }
+        bytesCleaned += stack[i].Length;
+        stack.RemoveAt(i); // Eliminar del stack lógico
+        Pop(Register.X0);  // Eliminar del stack físico (ajusta SP)
       }
-      return bytesCleaned;
+      else
+      {
+        break;
+      }
+    }
+    return bytesCleaned;
   }
 
   public (int, StackObject) GetObject(string id)
@@ -350,9 +350,9 @@ public int CleanTemporaries()
   }
 
   public void Ldrb(string rt, string rs)
-{
+  {
     instructions.Add($"LDRB {rt}, [{rs}]");
-}
+  }
 
   public void Ldr(string rt, string rs, int offset = 0)
   {
@@ -512,12 +512,12 @@ public int CleanTemporaries()
   }
 
   public void PrintSlice(string rs)
-{
+  {
     // Usar la función print_slice de la librería estándar
     stdLib.Use("print_slice");
     instructions.Add($"MOV X0, {rs}");
     instructions.Add($"BL print_slice");
-}
+  }
 
   public void PrintString(string rs)
   {
@@ -583,24 +583,24 @@ public int CleanTemporaries()
   }
 
   public StackObject GetFrameLocal(int index)
-{
+  {
     var localVars = stack.Where(o => o.Type == StackObject.StackObjectType.Undefined).ToList();
-    
+
     // Verificar si hay variables locales antes de acceder
     if (!localVars.Any())
     {
-        // Retornar un objeto temporal si no hay variables locales
-        return new StackObject
-        {
-            Type = StackObject.StackObjectType.Undefined,
-            Id = null,
-            Offset = index,
-            Length = 8
-        };
+      // Retornar un objeto temporal si no hay variables locales
+      return new StackObject
+      {
+        Type = StackObject.StackObjectType.Undefined,
+        Id = null,
+        Offset = index,
+        Length = 8
+      };
     }
-    
+
     return localVars[index];
-}
+  }
 
 
 

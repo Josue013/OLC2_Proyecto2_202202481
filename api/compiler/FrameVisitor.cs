@@ -67,7 +67,7 @@ public class FrameVisitor : LanguageBaseVisitor<Object?>
 
   public override object? VisitForClassicStmt(LanguageParser.ForClassicStmtContext context)
   {
-    
+
     if (context.forInit().varDcl() != null || context.forInit().varDcl2() != null)
     {
       Visit(context.forInit().varDcl());
