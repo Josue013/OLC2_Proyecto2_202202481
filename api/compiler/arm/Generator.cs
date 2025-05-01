@@ -2,20 +2,22 @@ using System.Text;
 
 public class StackObject
 {
-  public enum StackObjectType { Int, Float, String, Bool, Rune, Nil }
+  public enum StackObjectType { Int, Float, String, Bool, Rune, Nil, Undefined, Void, Slice }
   public StackObjectType Type { get; set; }
   public int Length { get; set; }
   public int Depth { get; set; }
   public string? Id { get; set; }
+  public int Offset { get; set; } 
 
 }
 
 public class ArmGenerator
 {
-  public readonly List<string> instructions = new List<string>();
+  public List<string> instructions = new List<string>();
+  public List<string> funcInstructions = new List<string>();
   public readonly StandardLibrary stdLib = new StandardLibrary();
   private List<StackObject> stack = new List<StackObject>();
-  private int depth = 0;
+  public int depth = 0;
   private int labelCounter = 0;
 
   public string GetLabel()
@@ -37,6 +39,7 @@ public class ArmGenerator
 
   public void PushObject(StackObject obj)
   {
+    Comment($"Pushing object {obj.Id} of type {obj.Type}");
     stack.Add(obj);
   }
 
@@ -110,6 +113,20 @@ public class ArmGenerator
 
     Pop(rd);
     return obj;
+  }
+
+  public void PopObject()
+  {
+    Comment("Popping objecto form stack");
+    try
+    {
+      stack.RemoveAt(stack.Count - 1);
+    }
+    catch (Exception e)
+    {
+      Console.WriteLine(e.Message);
+      throw new Exception("Stack is empty");
+    }
   }
 
   public StackObject IntObject()
@@ -287,6 +304,11 @@ public int CleanTemporaries()
     instructions.Add($"ADD {rd}, {rn}, {rm}");
   }
 
+  public void Adr(string rd, string label)
+  {
+    instructions.Add($"ADR {rd}, {label}");
+  }
+
   // Instruction Sub
   public void Sub(string rd, string rn, string rm)
   {
@@ -326,6 +348,11 @@ public int CleanTemporaries()
   {
     instructions.Add($"STRB {rs}, [{rt}]");
   }
+
+  public void Ldrb(string rt, string rs)
+{
+    instructions.Add($"LDRB {rt}, [{rs}]");
+}
 
   public void Ldr(string rt, string rs, int offset = 0)
   {
@@ -447,6 +474,16 @@ public int CleanTemporaries()
     instructions.Add($"BLE {label}");
   }
 
+  public void Br(string label)
+  {
+    instructions.Add($"BR {label}");
+  }
+
+  public void Bl(string label)
+  {
+    instructions.Add($"BL {label}");
+  }
+
   public void B(string label)
   {
     instructions.Add($"B {label}");
@@ -473,6 +510,14 @@ public int CleanTemporaries()
     instructions.Add($"MOV X0, {rs}");
     instructions.Add($"BL print_integer");
   }
+
+  public void PrintSlice(string rs)
+{
+    // Usar la función print_slice de la librería estándar
+    stdLib.Use("print_slice");
+    instructions.Add($"MOV X0, {rs}");
+    instructions.Add($"BL print_slice");
+}
 
   public void PrintString(string rs)
   {
@@ -528,11 +573,34 @@ public int CleanTemporaries()
     }
 
     // añadir funciones de la libreria estandar
+    sb.AppendLine("\n\n\n// Funciones Foraneas");
+    funcInstructions.ForEach(instruction => sb.AppendLine(instruction));
+
     sb.AppendLine("\n\n\n// Libreria Estandar");
     sb.AppendLine(stdLib.GetFunctionDefinitions());
 
     return sb.ToString();
   }
+
+  public StackObject GetFrameLocal(int index)
+{
+    var localVars = stack.Where(o => o.Type == StackObject.StackObjectType.Undefined).ToList();
+    
+    // Verificar si hay variables locales antes de acceder
+    if (!localVars.Any())
+    {
+        // Retornar un objeto temporal si no hay variables locales
+        return new StackObject
+        {
+            Type = StackObject.StackObjectType.Undefined,
+            Id = null,
+            Offset = index,
+            Length = 8
+        };
+    }
+    
+    return localVars[index];
+}
 
 
 

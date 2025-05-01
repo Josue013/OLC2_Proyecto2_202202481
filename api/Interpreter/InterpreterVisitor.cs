@@ -1552,77 +1552,34 @@ public class InterpreterVisitor : LanguageBaseVisitor<ValueWrapper>
     // VisitCallExpr
 
     public override ValueWrapper VisitCallExpr(LanguageParser.CallExprContext context)
+{
+    ValueWrapper callee = Visit(context.expr());
+
+    foreach (var action in context.call())
     {
-        ValueWrapper callee = Visit(context.expr());
-
-        foreach (var action in context.call())
+        if (action is LanguageParser.FuncCallContext funcall)
         {
-            if (action is LanguageParser.FuncCallContext funcall)
+            if (callee is FunctionValue functionValue)
             {
-                if (callee is FunctionValue functionValue)
+                var args = new List<ValueWrapper>();
+                if (funcall.exprList() != null)
                 {
-                    var args = new List<ValueWrapper>();
-                    if (funcall.exprList() != null)
+                    foreach (var expr in funcall.exprList().expr())
                     {
-                        foreach (var expr in funcall.exprList().expr())
-                        {
-                            args.Add(Visit(expr));
-                        }
-                    }
-                    callee = functionValue.invocable.Invoke(args, this);
-                }
-                else if (callee is StructValue structValue)
-                {
-                    string methodName = funcall.GetText().Split('(')[0];
-                    var method = structValue.Get(methodName);
-
-                    if (method is FunctionValue methodValue)
-                    {
-                        var args = new List<ValueWrapper> { structValue };
-                        if (funcall.exprList() != null)
-                        {
-                            foreach (var expr in funcall.exprList().expr())
-                            {
-                                args.Add(Visit(expr));
-                            }
-                        }
-                        callee = methodValue.invocable.Invoke(args, this);
-                    }
-                    else
-                    {
-                        throw new Exception($"Error: {methodName} no es un método");
+                        args.Add(Visit(expr));
                     }
                 }
-                else if (callee is NilValue)
-                {
-                    throw new Exception("Error: No se puede llamar a un método de nil");
-                }
-                else
-                {
-                    throw new Exception("Error: No se puede llamar a un valor que no es una función");
-                }
+                callee = functionValue.invocable.Invoke(args, this);
             }
-            else if (action is LanguageParser.GetContext propertyAccess)
+            else
             {
-                if (callee is StructValue structValue)
-                {
-                    string memberName = propertyAccess.ID().GetText();
-                    callee = structValue.Get(memberName);
-                }
-                else if (callee is NilValue)
-                {
-                    // Devolver nil en lugar de lanzar una excepción para que se pueda verificar si un campo es nil
-                    callee = new NilValue();
-                }
-                else
-                {
-                    throw new Exception("Error: No se puede acceder a una propiedad de un no-struct");
-                }
+                throw new Exception("Error: No se puede llamar a un valor que no es una función");
             }
         }
-
-        return callee;
     }
+
+    return callee;
+}
 
     // VisitCallEmbebida
     public ValueWrapper VisitCallEmbebida(Invocable invocable, LanguageParser.ExprListContext context)
@@ -1791,47 +1748,25 @@ public class InterpreterVisitor : LanguageBaseVisitor<ValueWrapper>
 
     // VisitFuncDCl
     public override ValueWrapper VisitFuncDCl(LanguageParser.FuncDClContext context)
+{
+    try
     {
-        try
-        {
-            // Verificar si es un método de struct (tiene receptor)
-            if (context.ID().Length > 1)
-            {
-                string receiverName = context.ID(0).GetText();
-                string structType = context.ID(1).GetText();
-                string methodName = context.ID(2).GetText();
-
-                // Obtener el struct del entorno
-                var structVar = currentEnvironment.GetVariable(structType, context.Start.Line, context.Start.Column);
-                if (structVar is not StructValue structDef)
-                {
-                    throw new Exception($"Error: {structType} no es un struct");
-                }
-
-                // Crear el método
-                var method = new ForeignFunction(currentEnvironment, context);
-
-                // Agregar el método al struct
-                structDef.GetType().Methods[methodName] = method;
-
-                return defaultValue;
-            }
-            else
-            {
-                // Es una función normal
-                string functionName = context.ID(0).GetText();
-                var function = new ForeignFunction(currentEnvironment, context);
-                currentEnvironment.DeclareVariable(functionName, new FunctionValue(function, functionName),
-                    context.Start.Line, context.Start.Column);
-                return defaultValue;
-            }
-        }
-        catch (Exception ex)
-        {
-            errores.Add(new Errores("Semantico", ex.Message, context.Start.Line, context.Start.Column));
-            return defaultValue;
-        }
+        string functionName = context.ID().GetText();
+        var function = new ForeignFunction(currentEnvironment, context);
+        
+        // Añadir la función al entorno
+        currentEnvironment.DeclareVariable(functionName, 
+            new FunctionValue(function, functionName),
+            context.Start.Line, context.Start.Column);
+            
+        return defaultValue;
     }
+    catch (Exception ex)
+    {
+        errores.Add(new Errores("Semantico", ex.Message, context.Start.Line, context.Start.Column));
+        return defaultValue;
+    }
+}
 
     // ******** structs ********
 

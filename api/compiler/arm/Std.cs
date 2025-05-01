@@ -21,7 +21,18 @@ public class StandardLibrary
         {
             UsedSymbols.Add("true_str");
             UsedSymbols.Add("false_str");
-        }
+        }else if (function == "open_bracket")
+    {
+        UsedSymbols.Add("open_bracket");
+    }
+    else if (function == "close_bracket")
+    {
+        UsedSymbols.Add("close_bracket");
+    }
+    else if (function == "comma_space")
+    {
+        UsedSymbols.Add("comma_space");
+    }
     }
 
     public string GetFunctionDefinitions()
@@ -416,7 +427,30 @@ print_rune:
   ldp x29, x30, [sp], #16
   ret
   "
-}
+}, { "copy_string", @"
+copy_string:
+    // Guardar registros
+    STP X29, X30, [SP, #-16]!
+    STP X19, X20, [SP, #-16]!
+
+copy_loop:
+    // Cargar byte
+    LDRB W19, [X0], #1
+    
+    // Si es 0, terminar
+    CBZ W19, copy_done
+    
+    // Guardar byte en destino
+    STRB W19, [X10]
+    ADD X10, X10, #1
+    B copy_loop
+
+copy_done:
+    // Restaurar registros
+    LDP X19, X20, [SP], #16
+    LDP X29, X30, [SP], #16
+    RET
+"}
     };
 
     private readonly static Dictionary<string, string> Symbols = new Dictionary<string, string>
@@ -426,6 +460,9 @@ print_rune:
         { "zero_char", @"zero_char: .ascii ""0""" },
         { "true_str", @"true_str: .ascii ""true""" },
         { "false_str", @"false_str: .ascii ""false""" },
-        { "nil_str", @"nil_str: .ascii ""nil""" }
+        { "nil_str", @"nil_str: .ascii ""nil""" },
+        { "open_bracket", @"open_bracket: .ascii ""[""" },
+        { "close_bracket", @"close_bracket: .ascii ""]""" },
+        { "comma_space", @"comma_space: .ascii "", """ }
     };
 }

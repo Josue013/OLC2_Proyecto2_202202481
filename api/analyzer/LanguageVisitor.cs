@@ -87,6 +87,12 @@ public interface ILanguageVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitParams([NotNull] LanguageParser.ParamsContext context);
 	/// <summary>
+	/// Visit a parse tree produced by <see cref="LanguageParser.param"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitParam([NotNull] LanguageParser.ParamContext context);
+	/// <summary>
 	/// Visit a parse tree produced by the <c>ExprStmt</c>
 	/// labeled alternative in <see cref="LanguageParser.stmt"/>.
 	/// </summary>
@@ -211,13 +217,6 @@ public interface ILanguageVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitSlice2Stmt([NotNull] LanguageParser.Slice2StmtContext context);
 	/// <summary>
-	/// Visit a parse tree produced by the <c>Slice3Stmt</c>
-	/// labeled alternative in <see cref="LanguageParser.slice1"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	/// <return>The visitor result.</return>
-	Result VisitSlice3Stmt([NotNull] LanguageParser.Slice3StmtContext context);
-	/// <summary>
 	/// Visit a parse tree produced by the <c>Slice4Stmt</c>
 	/// labeled alternative in <see cref="LanguageParser.slice2"/>.
 	/// </summary>
@@ -270,6 +269,13 @@ public interface ILanguageVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	Result VisitLogical([NotNull] LanguageParser.LogicalContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>Slice3Stmt</c>
+	/// labeled alternative in <see cref="LanguageParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitSlice3Stmt([NotNull] LanguageParser.Slice3StmtContext context);
 	/// <summary>
 	/// Visit a parse tree produced by the <c>String</c>
 	/// labeled alternative in <see cref="LanguageParser.expr"/>.

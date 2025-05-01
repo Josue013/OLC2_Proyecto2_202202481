@@ -12,7 +12,7 @@ varDcl: 'var' ID type ('=' expr)?;
 
 varDcl2: ID ':=' expr;
 
-funcDCl: 'func' ('(' ID ID ')')? ID '(' params? ')' type? '{' dcl* '}' ;
+funcDCl: 'func' ID '(' params? ')' type? '{' dcl* '}' ;
 
 structDcl: 'type' ID 'struct' '{' structBody* '}' ;
 
@@ -20,7 +20,9 @@ structBody: varDCLstruct ';'? ;
 
 varDCLstruct: ID (type | ID);
 
-params: ID type (',' ID type)*;
+params: param(',' param)*;
+
+param: ID type;
 
 stmt:
 	expr 														# ExprStmt
@@ -56,7 +58,7 @@ slice1:
 	// Declaracion de slice vacio
 	| 'var' ID '[]' type # Slice2Stmt
 	// Asignacion de valores
-	| ID '[' expr ']' '=' expr # Slice3Stmt
+	//| ID '[' expr ']' '=' expr # Slice3Stmt
 	
 ;
 
@@ -117,6 +119,9 @@ expr:
 
 	// Assignment operations
 	| expr '='  expr # Assign
+
+	// Asignacion de valores
+	| ID '[' expr ']' '=' expr # Slice3Stmt
 
 	// Acceso vector
 	| ID '[' expr ']' # Slice6Stmt
